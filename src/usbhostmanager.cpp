@@ -13,7 +13,7 @@
 
 void USBHostManager::start() {
     // This will happen after Gamepad has initialized
-    if (PeripheralManager::getInstance().isUSBEnabled(0) && listeners.size() > 0) {
+    if (PeripheralManager::getInstance().isUSBEnabled(0)) {
         pio_usb_configuration_t* pio_cfg = PeripheralManager::getInstance().getUSB(0)->getController();
         tuh_configure(1, TUH_CFGID_RPI_PIO_USB_CONFIGURATION, pio_cfg);
         tuh_init(BOARD_TUH_RHPORT);
@@ -145,6 +145,10 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
     if ( !tuh_hid_receive_report(dev_addr, instance) ) {
         //Error: cannot request report
     }
+}
+
+void tuh_hid_report_sent_cb(uint8_t dev_addr, uint8_t instance, const uint8_t* report, uint16_t len) {
+    USBHostManager::getInstance().xinput_report_sent_cb(dev_addr, instance, report, len);
 }
 
 // On IN/OUT/FEATURE set report callback

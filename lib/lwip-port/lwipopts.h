@@ -58,7 +58,10 @@
 #define LWIP_HTTPD_CUSTOM_FILES         1
 #define LWIP_HTTPD_SUPPORT_POST         1
 #define LWIP_HTTPD_SUPPORT_V09          0
-#define LWIP_HTTPD_SUPPORT_11_KEEPALIVE 0 // Causes lockups with CGI requests
+// CGIは無効。即時JSONを繰り返し取得するため接続を再利用する。
+#define LWIP_HTTPD_SUPPORT_11_KEEPALIVE 1
+#define MEMP_NUM_TCP_PCB                16
+#define MEM_SIZE                        (16 * 1024)
 #define LWIP_HTTPD_ABORT_ON_CLOSE_MEM_ERROR 1
 
 #define LWIP_SINGLE_NETIF               1

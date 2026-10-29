@@ -1,7 +1,6 @@
 export default {
 	'input-macro-editor-tab': 'Editor',
 	'input-macro-advanced-tab': 'Advanced',
-	'input-macro-board-led-enabled': 'Use Board LED to Display Macro Status',
 	'input-macro-macro-enabled': 'Enabled',
 	'input-macro-macro-enabled-badge': 'Enabled',
 	'input-macro-macro-disabled-badge': 'Disabled',
@@ -21,7 +20,7 @@ export default {
 	'input-macro-time-label-frames': 'frame(s)',
 	'input-macro-release-and-wait-label': 'release and wait ',
 	'input-macro-sub-header':
-		'Note: For pin mapped macros, please see the Pin Mapping page under Configuration. Macros can also be assigned to a gamepad button with the corresponding held single Macro button.',
+		'Enable Macros in Add-Ons. In PSX Button Mapping Settings, assign Macro 1 through Macro 6 to a PSX input to trigger that macro directly. With Use Macro Button + Gamepad Button enabled, assign Macro to a PSX input and hold it with the selected gamepad button. No wiring settings are required.',
 	'input-macro-macro-label-label': 'Label',
 	'input-macro-add-input-label': 'Add Input +',
 	'input-macro-type': {
@@ -38,5 +37,5 @@ export default {
 	'table-thread-actions': 'Actions',
 	'table-thread-status': 'Status',
 	'input-macro-macro-trigger-type-button': 'Button',
-	'input-macro-macro-trigger-type-pin': 'Pin',
+	'input-macro-macro-trigger-type-action': 'PSX Action',
 };

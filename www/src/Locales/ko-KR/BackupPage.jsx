@@ -11,8 +11,9 @@ export default {
 	'api-led-text': 'LED',
 	'api-ledTheme-text': '커스텀 LED 테마',
 	'api-macros-text': '매크로 매핑',
-	'api-pins-text': '핀 매핑',
+	'api-pins-text': 'PSX 버튼 매핑 설정',
 	'api-profiles-text': '프로필 매핑',
 	'api-addons-text': '애드온',
+	'api-heTrigger-text': '홀 이펙트 트리거',
 	'api-splash-text': '스플래시 이미지',
 };

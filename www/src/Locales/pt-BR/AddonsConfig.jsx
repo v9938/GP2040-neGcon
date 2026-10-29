@@ -1,4 +1,24 @@
 export default {
+	'psx-analog-description': 'A entrada analógica PSX está sempre ativa. Os sticks DS1/DS2 devem usar saídas Left/Right diferentes. A torção neGcon segue os ajustes do primeiro par. I/II/L são somados ao valor atual do eixo usando a pressão corrigida u (0..1): full adiciona (u-0.5)*65535, de meia escala negativa em 0 até meia escala positiva em 1; center+/- adiciona u*(+/-32767.5); LT/RT adiciona u*255. No modo full, mesmo sem pressão o valor existente é deslocado na direção negativa. Saídas sobrepostas são permitidas; apenas a soma final é limitada. Digital PSX não tem sticks analógicos.',
+	'negcon-output': 'Saída analógica',
+	'negcon-threshold': 'Limiar de acionamento digital (0-255)',
+	'negcon-inner-deadzone': 'Zona morta interna de pressão (%)',
+	'negcon-outer-deadzone': 'Zona morta externa de pressão (%)',
+	'negcon-digital-enabled': 'Ativar acionamento digital',
+	'jogcon-deadzone': 'Zona morta do dial',
+	'jogcon-max': 'Entrada máxima',
+	'jogcon-counts': 'contagens',
+	'jogcon-forceback': 'Ativar força de retorno',
+	'jogcon-reset': 'Redefinir posição do dial',
+	'jogcon-position': 'Posição RAW',
+	'jogcon-feedback': 'Força de retorno',
+	'jogcon-state-0': 'Desconectado',
+	'jogcon-state-1': 'Em espera',
+	'jogcon-state-2': 'Retornando',
+	'jogcon-state-3': 'Concluído',
+	'jogcon-state-4': 'Tempo esgotado',
+	'jogcon-state-5': 'Falha',
+	'jogcon-sleep-help': 'O motor pode estar em repouso apos 60 segundos sem botoes. Pressione e solte um botao fisico e reinicie o dial.',
 	'header-text': 'Configuração de Complementos',
 	'sub-header-text':
 		'Use o formulário abaixo para reconfigurar as opções de complemento no GP2040-CE.',
@@ -130,6 +150,8 @@ export default {
 	'keyboard-host-header-text': 'Configuração de Host de Teclado',
 	'keyboard-host-sub-header-text':
 		'A seguir, defina os pinos de dados +, - e 5V (opcional). Apenas os pinos + e 5V podem ser configurados.',
+	'pin-config-moved-to-core-text':
+		'Observação: as atribuições de botões deste complemento agora são configuradas na página <0>Configuração dos botões PSX</0>.',
 	'input-history-header-text': 'Histórico de Entrada',
 	'input-history-length-label': 'Comprimento do histórico (caracteres)',
 	'input-history-col-label': 'Coluna',

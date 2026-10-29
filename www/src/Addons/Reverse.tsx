@@ -4,32 +4,31 @@ import * as yup from 'yup';
 
 import Section from '../Components/Section';
 import FormSelect from '../Components/FormSelect';
-import FormControl from '../Components/FormControl';
+import { AddonPropTypes } from '../Pages/AddonsConfigPage';
 
 const REVERSE_ACTION = [
-	{ label: 'Disable', value: 0 },
-	{ label: 'Enable', value: 1 },
+	{ label: 'Ignore', value: 0 },
+	{ label: 'Invert', value: 1 },
 	{ label: 'Neutral', value: 2 },
 ];
 
 export const reverseScheme = {
-	ReverseInputEnabled: yup.number().required().label('Reverse Input Enabled'),
-	reversePinLED: yup
-		.number()
-		.label('Reverse Pin LED')
-		.validatePinWhenValue('ReverseInputEnabled'),
+	ReverseInputEnabled: yup.number().required().oneOf([0, 1]).label('Reverse Input Enabled'),
+	reverseActionUp: yup.number().required().oneOf([0, 1, 2]),
+	reverseActionDown: yup.number().required().oneOf([0, 1, 2]),
+	reverseActionLeft: yup.number().required().oneOf([0, 1, 2]),
+	reverseActionRight: yup.number().required().oneOf([0, 1, 2]),
 };
 
 export const reverseState = {
 	ReverseInputEnabled: 0,
-	reversePinLED: -1,
 	reverseActionUp: 0,
 	reverseActionDown: 0,
 	reverseActionLeft: 0,
 	reverseActionRight: 0,
 };
 
-const Reverse = ({ values, errors, handleChange, handleCheckbox }) => {
+const Reverse = ({ values, errors, handleChange, handleCheckbox }: AddonPropTypes) => {
 	const { t } = useTranslation();
 	const translatedReverseAction = REVERSE_ACTION.map((option) => ({
 		...option,
@@ -47,21 +46,7 @@ const Reverse = ({ values, errors, handleChange, handleCheckbox }) => {
 		}
 		>
 			<div id="ReverseInputOptions" hidden={!values.ReverseInputEnabled}>
-				<Row className="mb-3">
-					<FormControl
-						type="number"
-						label={t('AddonsConfig:input-reverse-led-pin-label')}
-						name="reversePinLED"
-						className="form-select-sm"
-						groupClassName="col-sm-3 mb-3"
-						value={values.reversePinLED}
-						error={errors.reversePinLED}
-						isInvalid={errors.reversePinLED}
-						onChange={handleChange}
-						min={-1}
-						max={29}
-					/>
-				</Row>
+				<p>{t('AddonsConfig:reverse-psx-guide')}</p>
 				<Row className="mb-3">
 					<FormSelect
 						label={t('AddonsConfig:input-reverse-action-up-label')}
@@ -70,7 +55,7 @@ const Reverse = ({ values, errors, handleChange, handleCheckbox }) => {
 						groupClassName="col-sm-3 mb-3"
 						value={values.reverseActionUp}
 						error={errors.reverseActionUp}
-						isInvalid={errors.reverseActionUp}
+						isInvalid={Boolean(errors.reverseActionUp)}
 						onChange={handleChange}
 					>
 						{translatedReverseAction.map((o, i) => (
@@ -86,7 +71,7 @@ const Reverse = ({ values, errors, handleChange, handleCheckbox }) => {
 						groupClassName="col-sm-3 mb-3"
 						value={values.reverseActionDown}
 						error={errors.reverseActionDown}
-						isInvalid={errors.reverseActionDown}
+						isInvalid={Boolean(errors.reverseActionDown)}
 						onChange={handleChange}
 					>
 						{translatedReverseAction.map((o, i) => (
@@ -102,7 +87,7 @@ const Reverse = ({ values, errors, handleChange, handleCheckbox }) => {
 						groupClassName="col-sm-3 mb-3"
 						value={values.reverseActionLeft}
 						error={errors.reverseActionLeft}
-						isInvalid={errors.reverseActionLeft}
+						isInvalid={Boolean(errors.reverseActionLeft)}
 						onChange={handleChange}
 					>
 						{translatedReverseAction.map((o, i) => (
@@ -118,7 +103,7 @@ const Reverse = ({ values, errors, handleChange, handleCheckbox }) => {
 						groupClassName="col-sm-3 mb-3"
 						value={values.reverseActionRight}
 						error={errors.reverseActionRight}
-						isInvalid={errors.reverseActionRight}
+						isInvalid={Boolean(errors.reverseActionRight)}
 						onChange={handleChange}
 					>
 						{translatedReverseAction.map((o, i) => (
@@ -137,7 +122,7 @@ const Reverse = ({ values, errors, handleChange, handleCheckbox }) => {
 				isInvalid={false}
 				checked={Boolean(values.ReverseInputEnabled)}
 				onChange={(e) => {
-					handleCheckbox('ReverseInputEnabled', values);
+					handleCheckbox('ReverseInputEnabled');
 					handleChange(e);
 				}}
 			/>

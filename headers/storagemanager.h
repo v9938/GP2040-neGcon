@@ -7,7 +7,7 @@
 #define STORAGE_H_
 
 #include <stdint.h>
-#include "NeoPico.h"
+#include "legacy_rgb.h"
 #include "FlashPROM.h"
 
 #include "enums.h"
@@ -47,6 +47,15 @@ public:
 	PeripheralOptions& getPeripheralOptions() { return config.peripheralOptions; }
 
 	void init();
+	static bool validatePsxAnalogOptions(const AnalogOptions& options);
+	static bool isNormalButtonMask(uint32_t mask);
+	static bool validateMacroOptions(const MacroOptions& options);
+	static bool isPsxMappingAction(int32_t action);
+	static bool isPsxReservedPhysicalPin(int32_t pin);
+	static bool validatePsxLedPins(const Config& config);
+	static bool isReactiveLedAction(int32_t action);
+	static bool validateReactiveLedOptions(const ReactiveLEDOptions& options);
+	static void enforcePsxConfig(Config& config);
 	bool save();
 	bool save(const bool force);
 

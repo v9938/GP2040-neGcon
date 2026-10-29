@@ -74,42 +74,14 @@ const Navigation = () => {
 						>
 							{t('Navigation:pin-mapping-label')}
 						</NavDropdown.Item>
-						<NavDropdown.Item
-							as={NavLink}
-							eventKey={eventKey++}
-							to="/peripheral-mapping"
-						>
-							{t('Navigation:peripheral-mapping-label')}
-						</NavDropdown.Item>
-						<NavDropdown.Item
-							as={NavLink}
-							eventKey={eventKey++}
-							to="/led-config"
-						>
-							{t('Navigation:led-config-label')}
-						</NavDropdown.Item>
-						<NavDropdown.Item
-							as={NavLink}
-							eventKey={eventKey++}
-							to="/custom-theme"
-						>
-							{t('Navigation:custom-theme-label')}
-						</NavDropdown.Item>
-						<NavDropdown.Item
-							as={NavLink}
-							eventKey={eventKey++}
-							to="/display-config"
-						>
-							{t('Navigation:display-config-label')}
-						</NavDropdown.Item>
 						<NavDropdown.Item as={NavLink} eventKey={eventKey++} to="/add-ons">
 							{t('Navigation:add-ons-label')}
 						</NavDropdown.Item>
-						<NavDropdown.Item as={NavLink} eventKey={eventKey++} to="/macro">
-							{t('Navigation:macro-label')}
-						</NavDropdown.Item>
 						<NavDropdown.Item as={NavLink} eventKey={eventKey++} to="/backup">
 							{t('Navigation:backup-label')}
+						</NavDropdown.Item>
+						<NavDropdown.Item as={NavLink} eventKey={eventKey++} to="/macro">
+							{t('Navigation:macro-label')}
 						</NavDropdown.Item>
 						<NavDropdown.Item
 							as={NavLink}
@@ -130,6 +102,13 @@ const Navigation = () => {
 							target="_blank"
 						>
 							{t('Navigation:github-label')}
+						</NavDropdown.Item>
+						<NavDropdown.Item
+							href="https://github.com/v9938/GP2040-neGcon"
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							GitHub (for neGcon)
 						</NavDropdown.Item>
 					</NavDropdown>
 				</Nav>

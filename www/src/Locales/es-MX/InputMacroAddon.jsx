@@ -21,7 +21,7 @@ export default {
 	'input-macro-time-label-frames': 'frame(s)',
 	'input-macro-release-and-wait-label': 'soltar y esperar ',
 	'input-macro-sub-header': 
-		'Nota: Para los macros mapeados a pines, consulte la página de Mapeo de Pines en Configuración. Los macros también pueden asignarse a un botón del control manteniendo presionado el botón de Macro correspondiente.',
+		'Nota: Para los macros asignados a entradas PSX, consulte la página Configuración de botones PSX en Configuración. Los macros también pueden asignarse a un botón del control manteniendo presionado el botón de Macro correspondiente.',
 	'input-macro-macro-label-label': 'Etiqueta',
 	'input-macro-add-input-label': 'Añadir Entrada +',
 	'input-macro-type': {

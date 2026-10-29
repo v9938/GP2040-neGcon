@@ -37,6 +37,7 @@ message GamepadOptions
     optional uint32 usbProductID = 30;
     optional uint32 usbVendorID = 31;
     optional uint32 miniMenuGamepadInput = 32;
+    optional InputModeDeviceType inputDeviceType = 33;
 }
 
 message KeyboardMapping
@@ -418,6 +419,25 @@ message AnalogOptions
     optional uint32 outer_deadzone2 = 21;
     optional bool auto_calibrate2 = 22;
     optional bool forced_circularity2 = 23;
+    // neGcon のアナログ出力先と仮想ボタン判定閾値。
+    optional uint32 negconIMode = 24 [default = 12];
+    optional uint32 negconIIMode = 25 [default = 11];
+    optional uint32 negconLMode = 26 [default = 0];
+    optional uint32 negconIThreshold = 27 [default = 128];
+    optional uint32 negconIIThreshold = 28 [default = 128];
+    optional uint32 negconLThreshold = 29 [default = 240];
+    optional uint32 jogconDeadzone = 30 [default = 0];
+    optional uint32 jogconMax = 31 [default = 100];
+    optional bool jogconForcebackEnabled = 32 [default = true];
+    optional uint32 negconIInnerDeadzone = 33 [default = 0];
+    optional uint32 negconIOuterDeadzone = 34 [default = 100];
+    optional uint32 negconIIInnerDeadzone = 35 [default = 0];
+    optional uint32 negconIIOuterDeadzone = 36 [default = 100];
+    optional uint32 negconLInnerDeadzone = 37 [default = 0];
+    optional uint32 negconLOuterDeadzone = 38 [default = 100];
+    optional bool negconIDigitalEnabled = 39 [default = true];
+    optional bool negconIIDigitalEnabled = 40 [default = true];
+    optional bool negconLDigitalEnabled = 41 [default = true];
 }
 
 message TurboOptions
@@ -727,6 +747,17 @@ message SNESOptions
     optional int32 dataPin = 4;
 }
 
+message TG16Options
+{
+    optional bool enabled = 1;
+    optional int32 oePin = 2;
+    optional int32 selectPin = 3;
+    optional int32 dataPin0 = 4;
+    optional int32 dataPin1 = 5;
+    optional int32 dataPin2 = 6;
+    optional int32 dataPin3 = 7;
+}
+
 message KeyboardHostOptions
 {
     optional bool enabled = 1;
@@ -736,6 +767,8 @@ message KeyboardHostOptions
     optional uint32 mouseLeft = 5;
     optional uint32 mouseMiddle = 6;
     optional uint32 mouseRight = 7;
+    optional uint32 mouseSensitivity = 8;
+    optional MouseMovementMode movementMode = 9;
 }
 
 message GamepadUSBHostOptions
@@ -752,6 +785,7 @@ message FocusModeOptions
     optional bool rgbLockEnabled = 5;
     optional bool buttonLockEnabled = 6;
     optional bool macroLockEnabled = 7;
+    optional bool overrideEnabled = 8;
 }
 
 message MacroInput
@@ -819,14 +853,14 @@ message PCF8575Options
 
 message DRV8833RumbleOptions
 {
-		optional bool enabled = 1;
+    optional bool enabled = 1;
 
-		optional int32 leftMotorPin = 2;
-		optional int32 rightMotorPin = 3;
-		optional int32 motorSleepPin = 4;
-		optional uint32 pwmFrequency = 5;
-		optional float dutyMin = 6;
-		optional float dutyMax = 7;
+    optional int32 leftMotorPin = 2;
+    optional int32 rightMotorPin = 3;
+    optional int32 motorSleepPin = 4;
+    optional uint32 pwmFrequency = 5;
+    optional float dutyMin = 6;
+    optional float dutyMax = 7;
 }
 
 message ReactiveLEDInfo
@@ -835,12 +869,39 @@ message ReactiveLEDInfo
     optional GpioAction action = 2;
     optional ReactiveLEDMode modeDown = 3;
     optional ReactiveLEDMode modeUp = 4;
+    optional uint32 brightness = 6 [default = 255];
 }
 
 message ReactiveLEDOptions
 {
-    optional bool enabled = 1;
+    optional bool enabled = 1 [default = true];
     repeated ReactiveLEDInfo leds = 2 [(nanopb).max_count = 10];
+}
+
+message HETriggerInfo
+{
+    optional GpioAction action = 1;
+    optional int32 active = 2;
+    optional int32 idle = 3;
+    optional int32 max = 4;
+    optional int32 polarity = 5;
+}
+
+message HETriggerOptions
+{
+    optional bool enabled = 1;
+    optional int32 selectPin0 = 2;
+    optional int32 selectPin1 = 3;
+    optional int32 selectPin2 = 4;
+    optional int32 selectPin3 = 5;
+    optional int32 muxADCPin0 = 6;
+    optional int32 muxADCPin1 = 7;
+    optional int32 muxADCPin2 = 8;
+    optional int32 muxADCPin3 = 9;
+    optional int32 muxChannels = 10;
+    repeated HETriggerInfo triggers = 11 [(nanopb).max_count = 32];
+    optional bool emaSmoothing = 12;
+    optional int32 smoothingFactor = 13;
 }
 
 message AddonOptions
@@ -873,6 +934,8 @@ message AddonOptions
     optional DRV8833RumbleOptions drv8833RumbleOptions = 26;
     optional ReactiveLEDOptions reactiveLEDOptions = 27;
     optional GamepadUSBHostOptions gamepadUSBHostOptions = 28;
+    optional TG16Options tg16Options = 29;
+    optional HETriggerOptions heTriggerOptions = 30;
 }
 
 message MigrationHistory
@@ -881,6 +944,8 @@ message MigrationHistory
     optional bool gpioMappingsMigrated = 2 [default = false];
     optional bool buttonProfilesMigrated = 3 [default = false];
     optional bool profileEnabledFlagsMigrated = 4 [default = false];
+    optional bool psxInputsMigrated = 5 [default = false];
+    optional bool xiaoLedsMigrated = 6 [default = false];
 }
 
 message Config

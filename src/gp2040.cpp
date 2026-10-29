@@ -9,27 +9,17 @@
 #include "storagemanager.h"
 #include "addonmanager.h"
 #include "types.h"
+#include "psx_input.h"
+#include "hardware/clocks.h"
 #include "usbhostmanager.h"
 
 // Inputs for Core0
 #include "addons/analog.h"
 #include "addons/bootsel_button.h"
-#include "addons/focus_mode.h"
-#include "addons/dualdirectional.h"
-#include "addons/tilt.h"
 #include "addons/keyboard_host.h"
-#include "addons/i2canalog1219.h"
 #include "addons/reverse.h"
-#include "addons/turbo.h"
-#include "addons/slider_socd.h"
-#include "addons/spi_analog_ads1256.h"
-#include "addons/wiiext.h"
 #include "addons/input_macro.h"
-#include "addons/snes_input.h"
-#include "addons/rotaryencoder.h"
-#include "addons/i2c_gpio_pcf8575.h"
 #include "addons/gamepad_usb_host.h"
-
 
 // Pico includes
 #include "pico/bootrom.h"
@@ -37,6 +27,8 @@
 #include "hardware/adc.h"
 
 #include "rndis.h"
+
+void analogMonitorTick();
 
 // TinyUSB
 #include "tusb.h"
@@ -60,8 +52,8 @@ void GP2040::setup() {
 	}
 
 	// I2C & SPI rely on the system clock
-	PeripheralManager::getInstance().initSPI();
-	PeripheralManager::getInstance().initI2C();
+	// PSXがSPI0を専有する。保存された外部SPI/I2C設定で固定配線を変更しない。
+	PsxInput::getInstance().setup();
 
 	Gamepad * gamepad = new Gamepad();
 	Gamepad * processedGamepad = new Gamepad();
@@ -71,49 +63,42 @@ void GP2040::setup() {
 	// Set pin mappings for all GPIO functions
 	Storage::getInstance().setFunctionalPinMappings();
 
+	// power up...
+	gamepad->auxState.power.pluggedIn = true;
+	gamepad->auxState.power.charging = false;
+	gamepad->auxState.power.level = GAMEPAD_AUX_MAX_POWER;
+
 	// Setup Gamepad
 	gamepad->setup();
-	
+
+	// Initialize last reinit profile to current so we don't reinit on first loop
+	gamepad->lastReinitProfileNumber = Storage::getInstance().getGamepadOptions().profileNumber;
+
 	// now we can load the latest configured profile, which will map the
 	// new set of GPIOs to use...
-    this->initializeStandardGpio();
+	this->initializeStandardGpio();
 
-    const GamepadOptions& gamepadOptions = Storage::getInstance().getGamepadOptions();
+	const GamepadOptions& gamepadOptions = Storage::getInstance().getGamepadOptions();
 
-    // check setup options and add modes to the list
-    // user modes
-    bootActions.insert({GAMEPAD_MASK_B1, gamepadOptions.inputModeB1});
-    bootActions.insert({GAMEPAD_MASK_B2, gamepadOptions.inputModeB2});
-    bootActions.insert({GAMEPAD_MASK_B3, gamepadOptions.inputModeB3});
-    bootActions.insert({GAMEPAD_MASK_B4, gamepadOptions.inputModeB4});
-    bootActions.insert({GAMEPAD_MASK_L1, gamepadOptions.inputModeL1});
-    bootActions.insert({GAMEPAD_MASK_L2, gamepadOptions.inputModeL2});
-    bootActions.insert({GAMEPAD_MASK_R1, gamepadOptions.inputModeR1});
-    bootActions.insert({GAMEPAD_MASK_R2, gamepadOptions.inputModeR2});
-
-	// Initialize our ADC (various add-ons)
-	adc_init();
+	// check setup options and add modes to the list
+	// user modes
+	bootActions.insert({GAMEPAD_MASK_B1, gamepadOptions.inputModeB1});
+	bootActions.insert({GAMEPAD_MASK_B2, gamepadOptions.inputModeB2});
+	bootActions.insert({GAMEPAD_MASK_B3, gamepadOptions.inputModeB3});
+	bootActions.insert({GAMEPAD_MASK_B4, gamepadOptions.inputModeB4});
+	bootActions.insert({GAMEPAD_MASK_L1, gamepadOptions.inputModeL1});
+	bootActions.insert({GAMEPAD_MASK_L2, gamepadOptions.inputModeL2});
+	bootActions.insert({GAMEPAD_MASK_R1, gamepadOptions.inputModeR1});
+	bootActions.insert({GAMEPAD_MASK_R2, gamepadOptions.inputModeR2});
 
 	// Setup Add-ons
+	addons.LoadAddon(new AnalogInput());
+	// PSX軸を先に生成し、接続中のUSB PADの軸がAnalog処理で消されない順序にする。
 	addons.LoadUSBAddon(new KeyboardHostAddon());
 	addons.LoadUSBAddon(new GamepadUSBHostAddon());
-	addons.LoadAddon(new AnalogInput());
 	addons.LoadAddon(new BootselButtonAddon());
-	addons.LoadAddon(new DualDirectionalInput());
-	addons.LoadAddon(new FocusModeAddon());
-	addons.LoadAddon(new I2CAnalog1219Input());
-	addons.LoadAddon(new SPIAnalog1256Input());
-	addons.LoadAddon(new WiiExtensionInput());
-	addons.LoadAddon(new SNESpadInput());
-	addons.LoadAddon(new SliderSOCDInput());
-	addons.LoadAddon(new TiltInput());
-	addons.LoadAddon(new RotaryEncoderInput());
-	addons.LoadAddon(new PCF8575Addon());
-
-	// Input override addons
-	addons.LoadAddon(new ReverseInput());
-	addons.LoadAddon(new TurboInput()); // Turbo overrides button states and should be close to the end
 	addons.LoadAddon(new InputMacro());
+	addons.LoadAddon(new ReverseInput());
 
 	InputMode inputMode = gamepad->getOptions().inputMode;
 	const BootAction bootAction = getBootAction();
@@ -169,6 +154,12 @@ void GP2040::setup() {
 		case BootAction::SET_INPUT_MODE_XBOXORIGINAL: // Xbox OG Driver
 			inputMode = INPUT_MODE_XBOXORIGINAL;
 			break;
+		case BootAction::SET_INPUT_MODE_SWITCH_PRO:
+			inputMode = INPUT_MODE_SWITCH_PRO;
+			break;
+		case BootAction::SET_INPUT_MODE_XE1AJ:
+			inputMode = INPUT_MODE_XE1AJ;
+			break;
 		case BootAction::NONE:
 		default:
 			break;
@@ -200,10 +191,8 @@ void GP2040::initializeStandardGpio() {
 		// (NONE=-10, RESERVED=-5, ASSIGNED_TO_ADDON=0, everything else is ours)
 		if (pinMappings[pin].action > 0)
 		{
-			gpio_init(pin);             // Initialize pin
-			gpio_set_dir(pin, GPIO_IN); // Set as INPUT
-			gpio_pull_up(pin);          // Set as PULLUP
-			buttonGpios |= 1 << pin;    // mark this pin as mattering for GPIO debouncing
+			// ここでのpinはPSX入力の保存スロット。物理GPIOを操作しない。
+			buttonGpios |= 1u << pin;
 		}
 	}
 }
@@ -212,15 +201,7 @@ void GP2040::initializeStandardGpio() {
  * @brief Deinitialize standard input button GPIOs that are present in the currently loaded profile.
  */
 void GP2040::deinitializeStandardGpio() {
-	GpioMappingInfo* pinMappings = Storage::getInstance().getProfilePinMappings();
-	for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++)
-	{
-		// (NONE=-10, RESERVED=-5, ASSIGNED_TO_ADDON=0, everything else is ours)
-		if (pinMappings[pin].action > 0)
-		{
-			gpio_deinit(pin);
-		}
-	}
+	buttonGpios = 0;
 }
 
 /**
@@ -234,31 +215,10 @@ void GP2040::deinitializeStandardGpio() {
  * instead, if you don't want debounced data.
  */
 void GP2040::debounceGpioGetAll() {
-	Mask_t raw_gpio = ~gpio_get_all();
+	PsxInput::getInstance().poll();
 	Gamepad* gamepad = Storage::getInstance().GetGamepad();
-	// return if state isn't different than the actual
-	if (gamepad->debouncedGpio == (raw_gpio & buttonGpios)) return;
-
-	uint32_t debounceDelay = Storage::getInstance().getGamepadOptions().debounceDelay;
-	// abort if no delay is configured
-	if (debounceDelay == 0) {
-		gamepad->debouncedGpio = raw_gpio;
-		return;
-	}
-
-	uint32_t now = getMillis();
-	// check each button use case GPIO for state
-	for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
-		Mask_t pin_mask = 1 << pin;
-		if (buttonGpios & pin_mask) {
-			// Allow debouncer to change state if button state changed and debounce delay threshold met
-			if ((gamepad->debouncedGpio & pin_mask) != \
-					(raw_gpio & pin_mask) && ((now - gpioDebounceTime[pin]) > debounceDelay)) {
-				gamepad->debouncedGpio ^= pin_mask;
-				gpioDebounceTime[pin] = now;
-			}
-		}
-	}
+	// PSXパッド内でデバウンス済み。切断時も遅延なく全ボタンを解放する。
+	gamepad->debouncedGpio = PsxInput::getInstance().virtualButtons() & buttonGpios;
 }
 
 void GP2040::run() {
@@ -266,10 +226,10 @@ void GP2040::run() {
 	GPDriver * inputDriver = DriverManager::getInstance().getDriver();
 	Gamepad * gamepad = Storage::getInstance().GetGamepad();
 	Gamepad * processedGamepad = Storage::getInstance().GetProcessedGamepad();
-    GamepadState prevState;
+	GamepadState prevState;
 
-    // Start the TinyUSB Device functionality
-    tud_init(TUD_OPT_RHPORT);
+	// Start the TinyUSB Device functionality
+	tud_init(TUD_OPT_RHPORT);
 
 	// Initialize our USB manager
 	USBHostManager::getInstance().start();
@@ -295,6 +255,7 @@ void GP2040::run() {
 
 		// Config Loop (Web-Config skips Core0 add-ons)
 		if (configMode == true) {
+			analogMonitorTick();
 			inputDriver->process(gamepad);
 			rebootHotkeys.process(gamepad, configMode);
 			checkSaveRebootState();
@@ -306,7 +267,7 @@ void GP2040::run() {
 
 		gamepad->hotkey(); 	// check for MPGS hotkeys
 		rebootHotkeys.process(gamepad, configMode);
-		
+
 		gamepad->process(); // process through MPGS
 
 		// (Post) Process for add-ons
@@ -319,7 +280,7 @@ void GP2040::run() {
 
 		// Process Input Driver
 		bool processed = inputDriver->process(gamepad);
-		
+
 		// TinyUSB Task update
 		tud_task();
 
@@ -332,8 +293,13 @@ void GP2040::run() {
 }
 
 void GP2040::getReinitGamepad(Gamepad * gamepad) {
-	// check if we should reinitialize the gamepad
-	if (gamepad->userRequestedReinit) {
+	GamepadOptions& gamepadOptions = Storage::getInstance().getGamepadOptions();
+
+	// Check if profile has changed since last reinit
+	if (gamepad->lastReinitProfileNumber != gamepadOptions.profileNumber) {
+		uint32_t previousProfile = gamepad->lastReinitProfileNumber;
+		uint32_t currentProfile = gamepadOptions.profileNumber;
+
 		// deinitialize the ordinary (non-reserved, non-addon) GPIO pins, since
 		// we are moving off of them and onto potentially different pin assignments
 		// we currently don't support ASSIGNED_TO_ADDON pins being reinitialized,
@@ -350,17 +316,32 @@ void GP2040::getReinitGamepad(Gamepad * gamepad) {
 		// now we can tell the gamepad that the new mappings are in place
 		// and ready to use, and the pins are ready, so it should reinitialize itself
 		gamepad->reinit();
+
 		// ...and addons on this core, if they implemented reinit (just things
 		// with simple GPIO pin usage, at time of writing)
 		addons.ReinitializeAddons();
 
-		// and we're done
-		gamepad->userRequestedReinit = false;
+		// Update the last reinit profile
+		gamepad->lastReinitProfileNumber = currentProfile;
+
+		// Trigger the profile change event now that reinit is complete
+		EventManager::getInstance().triggerEvent(new GPProfileChangeEvent(previousProfile, currentProfile));
 	}
 }
 
 GP2040::BootAction GP2040::getBootAction() {
-	switch (System::takeBootMode()) {
+	// 明示的な再起動要求は必ず消費する。START早期returnで古い要求を残さない。
+	const System::BootMode bootMode = System::takeBootMode();
+	if (bootMode == System::BootMode::USB) return BootAction::ENTER_USB_MODE;
+	// 通常のボタン割当と無関係に物理STARTを判定し、リマップ後も設定へ戻れる。
+	// 給電直後のパッド起動を待つ間だけポーリングする。通常ループには待機を入れない。
+	const uint64_t deadline = time_us_64() + 3000000;
+	while (time_us_64() < deadline) {
+		PsxInput::getInstance().poll();
+		if (PsxInput::getInstance().startPressed()) return BootAction::ENTER_WEBCONFIG_MODE;
+		sleep_ms(1);
+	}
+	switch (bootMode) {
 		case System::BootMode::GAMEPAD: return BootAction::NONE;
 		case System::BootMode::WEBCONFIG: return BootAction::ENTER_WEBCONFIG_MODE;
 		case System::BootMode::USB: return BootAction::ENTER_USB_MODE;
@@ -369,13 +350,13 @@ GP2040::BootAction GP2040::getBootAction() {
 				// Determine boot action based on gamepad state during boot
 				Gamepad * gamepad = Storage::getInstance().GetGamepad();
 				Gamepad * processedGamepad = Storage::getInstance().GetProcessedGamepad();
-				
+
 				debounceGpioGetAll();
 				gamepad->read();
 
 				// Pre-Process add-ons for MPGS
 				addons.PreprocessAddons();
-				
+
 				gamepad->process(); // process through MPGS
 
 				// Process for add-ons
@@ -393,42 +374,46 @@ GP2040::BootAction GP2040::getBootAction() {
 
 				if (gamepad->pressedS1() && gamepad->pressedS2() && gamepad->pressedUp()) {
 					return BootAction::ENTER_USB_MODE;
-				} else if (!webConfigLocked && gamepad->pressedS2()) {
+				} else if (!webConfigLocked && PsxInput::getInstance().startPressed()) {
 					return BootAction::ENTER_WEBCONFIG_MODE;
                 } else {
                     if (!modeSwitchLocked) {
                         if (auto search = bootActions.find(gamepad->state.buttons); search != bootActions.end()) {
                             switch (search->second) {
-                                case INPUT_MODE_XINPUT: 
+                                case INPUT_MODE_XINPUT:
                                     return BootAction::SET_INPUT_MODE_XINPUT;
-                                case INPUT_MODE_SWITCH: 
+                                case INPUT_MODE_SWITCH:
                                     return BootAction::SET_INPUT_MODE_SWITCH;
-                                case INPUT_MODE_KEYBOARD: 
+                                case INPUT_MODE_KEYBOARD:
                                     return BootAction::SET_INPUT_MODE_KEYBOARD;
                                 case INPUT_MODE_GENERIC:
                                     return BootAction::SET_INPUT_MODE_GENERIC;
                                 case INPUT_MODE_PS3:
                                     return BootAction::SET_INPUT_MODE_PS3;
-                                case INPUT_MODE_PS4: 
+                                case INPUT_MODE_PS4:
                                     return BootAction::SET_INPUT_MODE_PS4;
-                                case INPUT_MODE_PS5: 
+                                case INPUT_MODE_PS5:
                                     return BootAction::SET_INPUT_MODE_PS5;
-                                case INPUT_MODE_NEOGEO: 
+                                case INPUT_MODE_NEOGEO:
                                     return BootAction::SET_INPUT_MODE_NEOGEO;
-                                case INPUT_MODE_MDMINI: 
+                                case INPUT_MODE_MDMINI:
                                     return BootAction::SET_INPUT_MODE_MDMINI;
-                                case INPUT_MODE_PCEMINI: 
+                                case INPUT_MODE_PCEMINI:
                                     return BootAction::SET_INPUT_MODE_PCEMINI;
-                                case INPUT_MODE_EGRET: 
+                                case INPUT_MODE_EGRET:
                                     return BootAction::SET_INPUT_MODE_EGRET;
-                                case INPUT_MODE_ASTRO: 
+                                case INPUT_MODE_ASTRO:
                                     return BootAction::SET_INPUT_MODE_ASTRO;
-                                case INPUT_MODE_PSCLASSIC: 
+                                case INPUT_MODE_PSCLASSIC:
                                     return BootAction::SET_INPUT_MODE_PSCLASSIC;
-                                case INPUT_MODE_XBOXORIGINAL: 
+                                case INPUT_MODE_XBOXORIGINAL:
                                     return BootAction::SET_INPUT_MODE_XBOXORIGINAL;
                                 case INPUT_MODE_XBONE:
                                     return BootAction::SET_INPUT_MODE_XBONE;
+                                case INPUT_MODE_SWITCH_PRO:
+                                    return BootAction::SET_INPUT_MODE_SWITCH_PRO;
+                                case INPUT_MODE_XE1AJ:
+                                    return BootAction::SET_INPUT_MODE_XE1AJ;
                                 default:
                                     return BootAction::NONE;
                             }
@@ -555,13 +540,13 @@ void GP2040::checkSaveRebootState() {
 }
 
 void GP2040::handleStorageSave(GPEvent* e) {
-    saveRequested = true;
-	forceSave = ((GPStorageSaveEvent*)e)->forceSave; 
-    rebootRequested = ((GPStorageSaveEvent*)e)->restartAfterSave;
+	saveRequested = true;
+	forceSave = ((GPStorageSaveEvent*)e)->forceSave;
+	rebootRequested = ((GPStorageSaveEvent*)e)->restartAfterSave;
 	rebootMode = System::BootMode::DEFAULT;
 }
 
 void GP2040::handleSystemReboot(GPEvent* e) {
-    rebootRequested = true;
+	rebootRequested = true;
 	rebootMode = ((GPRestartEvent*)e)->bootMode;
 }

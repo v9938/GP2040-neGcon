@@ -1,4 +1,7 @@
 export default {
+	'api-reactiveLEDs-text': 'Reactive RGB LED Settings',
+	'api-keyMappings-text': 'Output Keyboard Mapping',
+	'ignored-legacy': 'Unsupported legacy categories/fields were ignored: {{categories}}',
 	'pin-version-warning-text':
 		'Importing pin mappings from files prior to v0.7.6 has no effect.',
 	'saved-success-message': 'Saved as: {{name}}',
@@ -11,8 +14,9 @@ export default {
 	'api-led-text': 'LED',
 	'api-ledTheme-text': 'Custom LED Theme',
 	'api-macros-text': 'Macro Mappings',
-	'api-pins-text': 'Pin Mappings',
+	'api-pins-text': 'PSX Button Mapping Settings',
 	'api-profiles-text': 'Profile Mappings',
 	'api-addons-text': 'Add-Ons',
+	'api-heTrigger-text': 'Hall Effect Trigger',
 	'api-splash-text': 'Splash Image',
 };

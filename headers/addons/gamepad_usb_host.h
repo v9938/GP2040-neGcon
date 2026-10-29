@@ -18,7 +18,7 @@ class GamepadUSBHostAddon : public GPAddon {
 public:
     virtual bool available();
     virtual void setup();       // GamepadUSBHost Setup
-    virtual void process() {}   // GamepadUSBHost Process
+    virtual void process();
     virtual void preprocess();
     virtual void postprocess(bool sent) {}
     virtual void reinit() {}

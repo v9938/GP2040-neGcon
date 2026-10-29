@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useContext } from 'react';
 import { AppContext } from '../Contexts/AppContext';
 import { Button, Form, Col } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
+import { DEFAULT_VALUES } from './AddonsConfigPage';
 
 import Section from '../Components/Section';
 import WebApi from '../Services/WebApi';
@@ -10,56 +11,36 @@ const FILE_EXTENSION = '.gp2040';
 const FILENAME = 'gp2040ce_backup_{DATE}' + FILE_EXTENSION;
 
 const API_BINDING = {
-	display: {
-		label: 'Display',
-		get: WebApi.getDisplayOptions,
-		set: WebApi.setDisplayOptions,
-	},
-	splash: {
-		label: 'Splash Image',
-		get: WebApi.getSplashImage,
-		set: WebApi.setSplashImage,
-	},
 	gamepad: {
-		label: 'Gamepad',
 		get: WebApi.getGamepadOptions,
 		set: WebApi.setGamepadOptions,
 	},
-	led: { label: 'LED', get: WebApi.getLedOptions, set: WebApi.setLedOptions },
-	ledTheme: {
-		label: 'Custom LED Theme',
-		get: WebApi.getCustomTheme,
-		set: WebApi.setCustomTheme,
-	},
 	macros: {
-		label: 'Macro Mappings',
 		get: WebApi.getMacroAddonOptions,
 		set: WebApi.setMacroAddonOptions,
 	},
 	pins: {
-		label: 'Pin Mappings',
 		get: WebApi.getPinMappings,
 		set: WebApi.setPinMappings,
 	},
 	profiles: {
-		label: 'Profile Mappings',
 		get: WebApi.getProfileOptions,
 		set: WebApi.setProfileOptions,
 	},
 	addons: {
-		label: 'Add-Ons',
 		get: WebApi.getAddonsOptions,
 		set: WebApi.setAddonsOptions,
 	},
-	// new api, add it here
-	// "example":	{label: "Example",		get: WebApi.getNewAPI,			set: WebApi.setNewAPI},
+	reactiveLEDs: { get: WebApi.getReactiveLEDs, set: WebApi.setReactiveLEDs },
+	keyMappings: { get: WebApi.getKeyMappings, set: WebApi.setKeyMappings },
 };
 
 export default function BackupPage() {
 	const inputFileSelect = useRef();
 
 	const [optionState, setOptionStateData] = useState({});
-	const [checkValues, setCheckValues] = useState({}); // lazy approach
+	const [importOptions, setImportOptions] = useState({});
+	const [exportOptions, setExportOptions] = useState({});
 
 	const [noticeMessage, setNoticeMessage] = useState('');
 	const [saveMessage, setSaveMessage] = useState('');
@@ -76,79 +57,45 @@ export default function BackupPage() {
 			}
 			setOptionStateData(exportData);
 		}
-		fetchData();
+		fetchData().catch((error) => setNoticeMessage(error.message));
 
-		// setup defaults
-		function getDefaultValues() {
-			let defaults = {};
-			for (const [key] of Object.entries(API_BINDING)) {
-				defaults[`export_${key}`] = true;
-				defaults[`import_${key}`] = true;
-			}
-			return defaults;
+		let defaults = {};
+		for (const [key] of Object.entries(API_BINDING)) {
+			defaults[key] = true;
 		}
-		setCheckValues(getDefaultValues());
+		setImportOptions(defaults);
+		setExportOptions(defaults);
 	}, []);
 
 	const validateValues = (data, nextData) => {
-		if (typeof data !== 'object' || typeof nextData !== 'object') {
-			// invalid data types
-			return {};
-		}
-
-		// Only used for array payload such as profiles
-		if (Array.isArray(data) && data.length === 0) {
-			return Array.isArray(nextData) ? nextData : [];
-		}
-
-		let validated = Array.isArray(data) ? [] : {};
-		const addValidated = (value, key) =>
-			Array.isArray(validated)
-				? validated.push(value)
-				: (validated[key] = value);
-
-		for (const [key, value] of Object.entries(data)) {
-			const nextDataValue = nextData[key];
-			if (
-				nextDataValue !== null &&
-				typeof nextDataValue !== 'undefined' &&
-				typeof value === typeof nextDataValue
-			) {
-				if (typeof nextDataValue === 'object') {
-					addValidated(validateValues(value, nextDataValue), key);
-				} else {
-					addValidated(nextDataValue, key);
-				}
-			}
-		}
-
-		return validated;
+		// 同一バージョンのカテゴリを丸ごと復元し、配列や未割当を保持する。
+		return structuredClone(nextData);
 	};
 
 	const setOptionsToAPIStorage = async (options) => {
 		for (const [key, func] of Object.entries(API_BINDING)) {
 			const values = options[key];
-			if (values) {
+			if (values !== undefined) {
 				const result = await func.set(values);
-				console.log(result);
+				if (!result || result.error !== undefined || result.success === false)
+					throw new Error(`Failed to set ${key} options`);
+				setOptionStateData((previous) => ({ ...previous, [key]: values }));
 			}
 		}
 	};
 
-	const handleChange = (ev) => {
-		const id = ev.nativeEvent.target.id;
-		let nextCheckValue = {};
-		nextCheckValue[id] = !checkValues[id];
-		setCheckValues((checkValues) => ({ ...checkValues, ...nextCheckValue }));
-	};
-
 	const handleSave = async () => {
 		let exportData = {};
-		for (const [key, value] of Object.entries(checkValues)) {
-			if (key.match('export_') && (value != null || value !== undefined)) {
-				let skey = key.slice(7, key.length);
-				if (optionState[skey] !== undefined || optionState[skey] != null) {
-					exportData[skey] = optionState[skey];
+		for (const [key, value] of Object.entries(exportOptions)) {
+			if (value) {
+				try {
+					const current = await API_BINDING[key].get(setLoading);
+					exportData[key] = key === 'addons'
+						? Object.fromEntries(Object.entries(current).filter(([name]) => name in DEFAULT_VALUES))
+						: key === 'macros' ? { macroList: current.macroList } : current;
+				} catch (error) {
+					setNoticeMessage(error.message);
+					return;
 				}
 			}
 		}
@@ -168,6 +115,7 @@ export default function BackupPage() {
 
 		a.click();
 		a.remove();
+		URL.revokeObjectURL(a.href);
 
 		setSaveMessage(t('BackupPage:saved-success-message', { name }));
 
@@ -190,7 +138,8 @@ export default function BackupPage() {
 		const fileName = input.files[0].name;
 
 		let reader = new FileReader();
-		reader.onload = function () {
+		reader.onload = async function () {
+			setLoadMessage('');
 			let fileData = undefined;
 			try {
 				fileData = JSON.parse(reader.result);
@@ -199,43 +148,41 @@ export default function BackupPage() {
 				setNoticeMessage(`Failed to parse data for ${fileName}!`);
 				return;
 			}
-			if (!fileData) {
+			if (!fileData || typeof fileData !== 'object' || Array.isArray(fileData)) {
 				setNoticeMessage(`No file data found for ${fileName}`);
 				return;
 			}
 
-			// validate parsed data
-			let newData = {};
-			for (const [key, value] of Object.entries(fileData)) {
-				if (optionState[key]) {
-					const result = validateValues(optionState[key], value);
-					newData[key] = result;
+			let filteredData = {};
+			const ignored = Object.keys(fileData).filter((key) => !(key in API_BINDING));
+			for (const [key, value] of Object.entries(importOptions)) {
+				if (value && fileData[key] !== undefined) {
+					let validData = validateValues(optionState[key], fileData[key]);
+					if (key === 'addons') {
+						const legacy = Object.keys(validData).filter((name) => !(name in DEFAULT_VALUES));
+						ignored.push(...legacy.map((name) => `addons.${name}`));
+						validData = Object.fromEntries(Object.entries(validData).filter(([name]) => name in DEFAULT_VALUES));
+					}
+					if (key === 'macros') validData = { macroList: validData.macroList };
+					filteredData[key] = validData;
 				}
 			}
 
-			if (Object.entries(newData).length > 0) {
-				// filter by known values
-				let filteredData = {};
-				for (const [key, value] of Object.entries(checkValues)) {
-					if (key.match('import_') && (value != null || value !== undefined)) {
-						let skey = key.slice(7, key.length);
-						if (newData[skey] !== undefined || newData[skey] != null) {
-							filteredData[skey] = newData[skey];
-						}
-					}
+			if (Object.keys(filteredData).length > 0) {
+				try {
+					await setOptionsToAPIStorage(filteredData);
+					setLoadMessage(`Loaded ${fileName}`);
+					setNoticeMessage(ignored.length ? t('BackupPage:ignored-legacy', { categories: ignored.join(', ') }) : '');
+				} catch (error) {
+					setNoticeMessage(error.message);
+					return;
 				}
-				const nextOptions = { ...optionState, ...filteredData };
-				setOptionStateData(nextOptions);
-
-				// write to internal storage
-				setOptionsToAPIStorage(nextOptions);
-
-				setLoadMessage(`Loaded ${fileName}`);
-				setNoticeMessage('');
 
 				setTimeout(() => {
 					setLoadMessage('');
 				}, 5000);
+			} else {
+				setNoticeMessage(t('BackupPage:ignored-legacy', { categories: ignored.join(', ') }));
 			}
 		};
 		reader.onerror = () => {
@@ -249,17 +196,22 @@ export default function BackupPage() {
 			<Section title={t('BackupPage:save-header-text')}>
 				<Col>
 					<Form.Group className={'row mb-3'}>
-						<div className={'col-sm-4'}>
-							{Object.entries(API_BINDING).map((api) => (
+						<div className={'col'}>
+							{Object.entries(API_BINDING).map(([key]) => (
 								<Form.Check
-									id={`export_${api[0]}`}
-									key={`export_${api[0]}`}
+									id={`export_${key}`}
+									key={`export_${key}`}
 									label={t('BackupPage:save-export-option-label', {
-										api: t(`BackupPage:api-${api[0]}-text`),
+										api: t(`BackupPage:api-${key}-text`),
 									})}
 									type={'checkbox'}
-									checked={checkValues[`export_${api[0]}`] ?? false}
-									onChange={handleChange}
+									checked={exportOptions[key] ?? false}
+									onChange={() => {
+										setExportOptions((prev) => ({
+											...prev,
+											[key]: !prev[key],
+										}));
+									}}
 								/>
 							))}
 						</div>
@@ -293,17 +245,22 @@ export default function BackupPage() {
 				</div>
 				<Col>
 					<Form.Group className={'row mb-3'}>
-						<div className={'col-sm-4'}>
-							{Object.entries(API_BINDING).map((api) => (
+						<div className={'col'}>
+							{Object.entries(API_BINDING).map(([key]) => (
 								<Form.Check
-									id={`import_${api[0]}`}
-									key={`import_${api[0]}`}
+									id={`import_${key}`}
+									key={`import_${key}`}
 									label={t('BackupPage:load-export-option-label', {
-										api: t(`BackupPage:api-${api[0]}-text`),
+										api: t(`BackupPage:api-${key}-text`),
 									})}
 									type={'checkbox'}
-									checked={checkValues[`import_${api[0]}`] ?? false}
-									onChange={handleChange}
+									checked={importOptions[key] ?? false}
+									onChange={() => {
+										setImportOptions((prev) => ({
+											...prev,
+											[key]: !prev[key],
+										}));
+									}}
 								/>
 							))}
 						</div>

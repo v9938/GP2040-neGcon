@@ -3,6 +3,7 @@ export default {
 	'input-mode-label': 'Modo de Entrada',
 	'input-mode-extra-label': 'Alternar Touchpad e Share',
 	'input-mode-options': {
+		xe1aj: 'XE1AJ-USB',
 		xinput: 'XInput',
 		'nintendo-switch': 'Nintendo Switch',
 		ps3: 'PS3/DirectInput',
@@ -33,7 +34,7 @@ export default {
 	'profile-label': 'Perfil',
 	'hotkey-settings-label': 'Configurações de Teclas de Atalho',
 	'hotkey-settings-sub-header':
-		'O controle deslizante <strong>Fn</strong> fornece um botão de função mapeável na página de <link_pinmap>Mapeamento de Pinos</link_pinmap>. Ao selecionar a opção de controle deslizante <strong>Fn</strong>, o botão de função deve ser mantido junto com as configurações de teclas de atalho selecionadas.<br />Além disso, selecione <strong>Nenhum</strong> no menu suspenso para desatribuir qualquer botão.',
+		'O controle deslizante <strong>Fn</strong> fornece um botão de função mapeável na página de <link_pinmap>Configuração dos botões PSX</link_pinmap>. Ao selecionar a opção de controle deslizante <strong>Fn</strong>, o botão de função deve ser mantido junto com as configurações de teclas de atalho selecionadas.<br />Além disso, selecione <strong>Nenhum</strong> no menu suspenso para desatribuir qualquer botão.',
 	'hotkey-settings-warning':
 		'O botão de função não está mapeado. O controle deslizante Fn será desativado.',
 	'hotkey-actions': {

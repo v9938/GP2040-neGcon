@@ -7,9 +7,11 @@ export default {
 	'current-input-mode-label': 'Current Input Mode',
 	'input-mode-extra-label': 'Switch Touchpad and Share',
 	'input-mode-options': {
+		xe1aj: 'XE1AJ-USB',
 		none: 'No Mode Selected',
 		xinput: 'XInput',
 		'nintendo-switch': 'Nintendo Switch',
+		'nintendo-switch-pro': 'Nintendo Switch Pro',
 		ps3: 'PS3',
 		generic: 'Generic HID',
 		keyboard: 'Keyboard',
@@ -83,7 +85,7 @@ export default {
 		'<span>INFO:</span> XInput mode will work on a retail Xbox 360 console without a dongle. Only select USB if you would like to use an external dongle for authentication.',
 	'hotkey-settings-label': 'Hotkey Settings',
 	'hotkey-settings-sub-header':
-		'The <strong>Fn</strong> slider provides a mappable Function button in the <link_pinmap>Pin Mapping</link_pinmap> page. By selecting the <strong>Fn</strong> slider option, the Function button must be held along with the selected hotkey settings. <br /> Additionally, select <strong>None</strong> from the dropdown to unassign any button.',
+		'The <strong>Fn</strong> slider provides a mappable Function button in the <link_pinmap>PSX Button Mapping Settings</link_pinmap> page. By selecting the <strong>Fn</strong> slider option, the Function button must be held along with the selected hotkey settings. <br /> Additionally, select <strong>None</strong> from the dropdown to unassign any button.',
 	'hotkey-settings-warning':
 		'Function button is not mapped. The Fn slider will be disabled.',
 	'hotkey-actions': {
@@ -101,6 +103,8 @@ export default {
 		'invert-x': 'Invert X Axis',
 		'invert-y': 'Invert Y Axis',
 		'toggle-4way-joystick-mode': 'Toggle 4-Way Joystick Mode',
+		'enable-4way-joystick-mode': 'Enable 4-Way Joystick Mode',
+		'disable-4way-joystick-mode': 'Disable 4-Way Joystick Mode',
 		'toggle-ddi-4way-joystick-mode': 'Toggle DDI 4-Way Joystick Mode',
 		'b1-button': 'B1 Button',
 		'b2-button': 'B2 Button',
@@ -140,6 +144,9 @@ export default {
 		'menu-nav-select': 'Menu Select',
 		'menu-nav-back': 'Menu Back',
 		'menu-nav-toggle': 'Menu Toggle',
+		'focus-mode-toggle': 'Focus Mode Toggle',
+		'turbo-count-up': 'Turbo Count Up',
+		'turbo-count-down': 'Turbo Count Down',
 	},
 	'forced-setup-mode-label': 'Forced Setup Mode',
 	'forced-setup-mode-options': {
@@ -167,4 +174,5 @@ export default {
 		'product-id': 'Product ID',
 		'vendor-id': 'Vendor ID',
 	},
+	'input-mode-device-type-label': 'Input Mode Controller Type',
 };

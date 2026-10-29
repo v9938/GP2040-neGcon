@@ -8,7 +8,7 @@
 #endif
 
 #ifndef REACTIVE_LED_COUNT
-#define REACTIVE_LED_COUNT 10
+#define REACTIVE_LED_COUNT 3
 #endif
 
 #ifndef REACTIVE_LED_DELAY
@@ -35,24 +35,27 @@ class ReactiveLEDAddon : public GPAddon
         virtual void preprocess() {}
         virtual void process();
         virtual void postprocess(bool sent) {}
-        virtual void reinit() {}
+        virtual void reinit() { setup(); }
         virtual std::string name() { return ReactiveLEDName; }
     private:
         struct ReactiveLEDPinState {
-            uint16_t pinNumber = -1;
             ReactiveLEDMode modeDown = ReactiveLEDMode::REACTIVE_LED_STATIC_ON;
             ReactiveLEDMode modeUp = ReactiveLEDMode::REACTIVE_LED_STATIC_OFF;
             GpioAction action = GpioAction::NONE;
             uint8_t value = 0;
+            uint8_t brightness = 255;
             bool currState = false;
             bool prevState = false;
-            uint32_t lastUpdate;
-            uint32_t currUpdate;
+            bool initialized = false;
+            uint32_t lastUpdate = 0;
+            uint32_t currUpdate = 0;
         };
 
         ReactiveLEDPinState ledPins[REACTIVE_LED_COUNT];
+        bool enabled = false;
+        uint32_t lastProcess = 0;
 
-        void setLEDByMode(ReactiveLEDPinState &ledState, bool pressed);
+        void setLEDByMode(ReactiveLEDPinState &ledState, uint8_t level);
 };
 
 #endif

@@ -10,7 +10,7 @@ export default {
 	'led-config-label': 'Configuración LED',
 	'links-label': 'Enlaces',
 	'macro-label': 'Configuración de Macros',
-	'pin-mapping-label': 'Mapeo de Pines GPIO',
+	'pin-mapping-label': 'Configuración de botones PSX',
 	'multi-mapping-label': 'Mapeo Múltiple',
 	'peripheral-mapping-label': 'Mapeo de Periféricos',
 	'profile-settings-label': 'Configuración de Perfiles',

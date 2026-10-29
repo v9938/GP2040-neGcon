@@ -5,19 +5,18 @@ import * as yup from 'yup';
 import Section from '../Components/Section';
 import FormSelect from '../Components/FormSelect';
 import { BUTTON_MASKS_OPTIONS } from '../Data/Buttons';
+import { AddonPropTypes } from '../Pages/AddonsConfigPage';
 
 export const bootselScheme = {
 	BootselButtonAddonEnabled: yup
 		.number()
 		.required()
+		.oneOf([0, 1])
 		.label('Boot Select Button Add-On Enabled'),
 	bootselButtonMap: yup
 		.number()
 		.label('BOOTSEL Button Map')
-		.validateSelectionWhenValue(
-			'BootselButtonAddonEnabled',
-			BUTTON_MASKS_OPTIONS,
-		),
+		.required().oneOf(BUTTON_MASKS_OPTIONS.map((option) => option.value)),
 };
 
 export const bootselState = {
@@ -25,7 +24,7 @@ export const bootselState = {
 	BootselButtonAddonEnabled: 0,
 };
 
-const Bootsel = ({ values, errors, handleChange, handleCheckbox }) => {
+const Bootsel = ({ values, errors, handleChange, handleCheckbox }: AddonPropTypes) => {
 	const { t } = useTranslation();
 	return (
 		<Section title={
@@ -52,7 +51,7 @@ const Bootsel = ({ values, errors, handleChange, handleCheckbox }) => {
 					groupClassName="col-sm-3 mb-3"
 					value={values.bootselButtonMap}
 					error={errors.bootselButtonMap}
-					isInvalid={errors.bootselButtonMap}
+					isInvalid={Boolean(errors.bootselButtonMap)}
 					onChange={handleChange}
 				>
 					{BUTTON_MASKS_OPTIONS.map((o, i) => (
@@ -70,7 +69,7 @@ const Bootsel = ({ values, errors, handleChange, handleCheckbox }) => {
 				isInvalid={false}
 				checked={Boolean(values.BootselButtonAddonEnabled)}
 				onChange={(e) => {
-					handleCheckbox('BootselButtonAddonEnabled', values);
+					handleCheckbox('BootselButtonAddonEnabled');
 					handleChange(e);
 				}}
 			/>

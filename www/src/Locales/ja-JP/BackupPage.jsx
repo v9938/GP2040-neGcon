@@ -1,4 +1,7 @@
 export default {
+	'api-reactiveLEDs-text': 'リアクティブRGB LED設定',
+	'api-keyMappings-text': '出力キーボード割り当て',
+	'ignored-legacy': '未対応の旧カテゴリ・項目は復元せず無視しました: {{categories}}',
 	'pin-version-warning-text': 'v0.7.6以前の設定ファイル読み込みは無効です。',
 	'saved-success-message': '{{name}} として保存完了',
 	'save-header-text': 'ファイルにバックアップ',
@@ -10,8 +13,9 @@ export default {
 	'api-led-text': 'LED',
 	'api-ledTheme-text': 'カスタムLEDテーマ',
 	'api-macros-text': 'マクロボタン割り当て',
-	'api-pins-text': '端子割り当て',
+	'api-pins-text': 'PSX ボタン割り当て設定',
 	'api-profiles-text': 'プロファイルボタン割り当て',
 	'api-addons-text': 'アドオン',
+	'api-heTrigger-text': 'ホールセンサボタン',
 	'api-splash-text': 'スプラッシュ画像',
 };

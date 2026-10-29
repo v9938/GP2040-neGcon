@@ -4,6 +4,7 @@ import * as yup from 'yup';
 import Section from '../Components/Section';
 import FormSelect from '../Components/FormSelect';
 import { FormCheck } from 'react-bootstrap';
+import { AddonPropTypes } from '../Pages/AddonsConfigPage';
 
 const ON_BOARD_LED_MODES = [
 	{ label: 'Off', value: 0 },
@@ -15,20 +16,24 @@ const ON_BOARD_LED_MODES = [
 export const onBoardLedScheme = {
 	BoardLedAddonEnabled: yup
 		.number()
+		.integer()
+		.oneOf([0, 1])
 		.required()
 		.label('Board LED Add-On Enabled'),
 	onBoardLedMode: yup
 		.number()
-		.label('On-Board LED Mode')
-		.validateSelectionWhenValue('BoardLedAddonEnabled', ON_BOARD_LED_MODES),
+		.integer()
+		.oneOf(ON_BOARD_LED_MODES.map(({ value }) => value))
+		.required()
+		.label('On-Board LED Mode'),
 };
 
 export const onBoardLedState = {
-	onBoardLedMode: 0,
-	BoardLedAddonEnabled: 0,
+	onBoardLedMode: 1,
+	BoardLedAddonEnabled: 1,
 };
 
-const OnBoardLed = ({ values, errors, handleChange, handleCheckbox }) => {
+const OnBoardLed = ({ values, errors, handleChange, handleCheckbox }: AddonPropTypes) => {
 	const { t } = useTranslation();
 
 	return (
@@ -42,6 +47,7 @@ const OnBoardLed = ({ values, errors, handleChange, handleCheckbox }) => {
 			</a>
 		}
 		>
+			<p>{t('AddonsConfig:on-board-led-status-description')}</p>
 			<div
 				id="BoardLedAddonEnabledOptions"
 				hidden={!values.BoardLedAddonEnabled}
@@ -49,11 +55,12 @@ const OnBoardLed = ({ values, errors, handleChange, handleCheckbox }) => {
 				<FormSelect
 					label={t('AddonsConfig:on-board-led-mode-label')}
 					name="onBoardLedMode"
+					aria-label={t('AddonsConfig:on-board-led-mode-label')}
 					className="form-select-sm"
 					groupClassName="col-sm-4 mb-3"
 					value={values.onBoardLedMode}
 					error={errors.onBoardLedMode}
-					isInvalid={errors.onBoardLedMode}
+					isInvalid={Boolean(errors.onBoardLedMode)}
 					onChange={handleChange}
 				>
 					{ON_BOARD_LED_MODES.map((o, i) => (
@@ -70,10 +77,7 @@ const OnBoardLed = ({ values, errors, handleChange, handleCheckbox }) => {
 				reverse
 				isInvalid={false}
 				checked={Boolean(values.BoardLedAddonEnabled)}
-				onChange={(e) => {
-					handleCheckbox('BoardLedAddonEnabled', values);
-					handleChange(e);
-				}}
+				onChange={() => handleCheckbox('BoardLedAddonEnabled')}
 			/>
 		</Section>
 	);

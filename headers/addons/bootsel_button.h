@@ -25,8 +25,11 @@ public:
     virtual void reinit() {}
     virtual std::string name() { return BootselButtonName; }
 private:	
-    bool isBootselPressed();
     uint32_t bootselButtonMap;
+    uint64_t nextSample = 0;
+    uint64_t changedAt = 0;
+    bool sampledPressed = false;
+    bool stablePressed = false;
 };
 
 #endif  // _BootselButton_H_

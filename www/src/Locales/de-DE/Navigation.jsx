@@ -11,7 +11,7 @@ export default {
 	'led-config-label': 'LED Konfiguration',
 	'links-label': 'Hyperlinks',
 	'macro-label': 'Makro',
-	'pin-mapping-label': 'Pin Zuweisung',
+	'pin-mapping-label': 'PSX-Tastenbelegung',
 	'peripheral-mapping-label': 'Peripherie Zuordnung',
 	'profile-settings-label': 'Profil Einstellungen',
 	'reboot-label': 'Neustart',

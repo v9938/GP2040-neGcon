@@ -9,14 +9,6 @@
 #define INPUT_MACRO_ENABLED 0
 #endif
 
-#ifndef BOARD_LED_PIN
-#ifndef PICO_DEFAULT_LED_PIN
-#define BOARD_LED_PIN 25
-#else
-#define BOARD_LED_PIN PICO_DEFAULT_LED_PIN
-#endif
-#endif
-
 #ifndef INPUT_MACRO_BOARD_LED_ENABLED
 #define INPUT_MACRO_BOARD_LED_ENABLED 0
 #endif
@@ -56,9 +48,8 @@ private:
     uint64_t currentMicros;
     int pressedMacro;
     int macroInputPosition;
-    uint32_t macroInputHoldTime;
+    uint64_t macroInputHoldTime;
     bool prevMacroInputPressed;
-    bool boardLedEnabled;
     MacroOptions * inputMacroOptions;
 };
 

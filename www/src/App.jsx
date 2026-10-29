@@ -6,16 +6,12 @@ import Navigation from './Components/Navigation';
 
 import HomePage from './Pages/HomePage';
 import PinMappingPage from './Pages/PinMapping';
-import PeripheralMappingPage from './Pages/PeripheralMappingPage';
 import ResetSettingsPage from './Pages/ResetSettingsPage';
 import SettingsPage from './Pages/SettingsPage';
-import DisplayConfigPage from './Pages/DisplayConfig';
-import LEDConfigPage from './Pages/LEDConfigPage';
-import CustomThemePage from './Pages/CustomThemePage';
 import AddonsConfigPage from './Pages/AddonsConfigPage';
 import BackupPage from './Pages/BackupPage';
-import PlaygroundPage from './Pages/PlaygroundPage';
-import InputMacroAddonPage from './Pages/InputMacroAddonPage';
+import MacrosPage from './Pages/InputMacroAddonPage';
+import AnalogMonitor from './Pages/AnalogMonitor';
 
 import './App.scss';
 
@@ -29,18 +25,12 @@ const App = () => {
 						<Route path="/" element={<HomePage />} />
 						<Route path="/settings" element={<SettingsPage />} />
 						<Route path="/pin-mapping" element={<PinMappingPage />} />
-						<Route
-							path="/peripheral-mapping"
-							element={<PeripheralMappingPage />}
-						/>
 						<Route path="/reset-settings" element={<ResetSettingsPage />} />
-						<Route path="/led-config" element={<LEDConfigPage />} />
-						<Route path="/custom-theme" element={<CustomThemePage />} />
-						<Route path="/display-config" element={<DisplayConfigPage />} />
 						<Route path="/add-ons" element={<AddonsConfigPage />} />
 						<Route path="/backup" element={<BackupPage />} />
-						<Route path="/playground" element={<PlaygroundPage />} />
-						<Route path="/macro" element={<InputMacroAddonPage />} />
+						<Route path="/macro" element={<MacrosPage />} />
+						<Route path="/input-macro" element={<MacrosPage />} />
+						<Route path="/analog-monitor" element={<AnalogMonitor />} />
 					</Routes>
 				</div>
 			</Router>

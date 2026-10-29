@@ -3,6 +3,7 @@
 
 static uint16_t * getStringDescriptor(const char * value, uint8_t index)
 {
+	if (value == nullptr) return nullptr;
 	static uint16_t descriptorStringBuffer[128]; // Max 256 bytes, 127 unicode characters
 	size_t charCount;
 	if ( index == 0 ) // language always has a character count of 1

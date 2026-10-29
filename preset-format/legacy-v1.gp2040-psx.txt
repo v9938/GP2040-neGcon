@@ -1,0 +1,255 @@
+# 旧v1互換サンプル。読込後はJOGCON設定0/100/1とneGcon感圧9項目の初期値を補完し、v3で保存します。
+# 旧fullの動作は現在値への加算に変わります。既存のI=14/II=13は保持し、12/11へ置換しません。
+[Preset]
+format = "GP2040-PSX-PRESET"
+version = 1
+
+[Profile]
+label = "Profile 1"
+enabled = true
+source = 1
+
+[Mapping]
+UP = "BUTTON_PRESS_UP"
+DOWN = "BUTTON_PRESS_DOWN"
+RIGHT = "BUTTON_PRESS_RIGHT"
+LEFT = "BUTTON_PRESS_LEFT"
+CROSS = "BUTTON_PRESS_B1"
+CIRCLE = "BUTTON_PRESS_B2"
+R2 = "BUTTON_PRESS_R2"
+L2 = "BUTTON_PRESS_L2"
+SQUARE = "BUTTON_PRESS_B3"
+TRIANGLE = "BUTTON_PRESS_B4"
+R1 = "BUTTON_PRESS_R1"
+L1 = "BUTTON_PRESS_L1"
+SELECT = "BUTTON_PRESS_S1"
+START = "BUTTON_PRESS_S2"
+L3 = "BUTTON_PRESS_L3"
+R3 = "BUTTON_PRESS_R3"
+
+[MappingMasks]
+UP.buttons = 0
+UP.dpad = 0
+DOWN.buttons = 0
+DOWN.dpad = 0
+RIGHT.buttons = 0
+RIGHT.dpad = 0
+LEFT.buttons = 0
+LEFT.dpad = 0
+CROSS.buttons = 0
+CROSS.dpad = 0
+CIRCLE.buttons = 0
+CIRCLE.dpad = 0
+R2.buttons = 0
+R2.dpad = 0
+L2.buttons = 0
+L2.dpad = 0
+SQUARE.buttons = 0
+SQUARE.dpad = 0
+TRIANGLE.buttons = 0
+TRIANGLE.dpad = 0
+R1.buttons = 0
+R1.dpad = 0
+L1.buttons = 0
+L1.dpad = 0
+SELECT.buttons = 0
+SELECT.dpad = 0
+START.buttons = 0
+START.dpad = 0
+L3.buttons = 0
+L3.dpad = 0
+R3.buttons = 0
+R3.dpad = 0
+
+[Addons]
+analogAdc1Mode = 1
+analogAdc2Mode = 2
+analogAdc1Invert = 0
+analogAdc2Invert = 0
+negconIMode = 14
+negconIIMode = 13
+negconLMode = 0
+negconIThreshold = 128
+negconIIThreshold = 128
+negconLThreshold = 240
+forced_circularity = 0
+forced_circularity2 = 0
+inner_deadzone = 5
+inner_deadzone2 = 5
+outer_deadzone = 95
+outer_deadzone2 = 95
+auto_calibrate = 0
+auto_calibrate2 = 0
+analog_smoothing = 0
+analog_smoothing2 = 0
+smoothing_factor = 5
+smoothing_factor2 = 5
+analog_error = 1000
+analog_error2 = 1000
+BootselButtonAddonEnabled = 0
+bootselButtonMap = 0
+BoardLedAddonEnabled = 1
+onBoardLedMode = 1
+ReverseInputEnabled = 0
+reverseActionUp = 0
+reverseActionDown = 0
+reverseActionLeft = 0
+reverseActionRight = 0
+KeyboardHostAddonEnabled = 0
+GamepadUSBHostAddonEnabled = 0
+keyboardHostMouseLeft = 0
+keyboardHostMouseMiddle = 0
+keyboardHostMouseRight = 0
+keyboardHostMouseSensitivity = 0
+keyboardHostMouseMovement = 0
+ReactiveLEDAddonEnabled = 1
+InputMacroAddonEnabled = 0
+
+[KeyboardHostMap]
+Up = 0
+Down = 0
+Left = 0
+Right = 0
+B1 = 0
+B2 = 0
+B3 = 0
+B4 = 0
+L1 = 0
+R1 = 0
+L2 = 0
+R2 = 0
+S1 = 0
+S2 = 0
+L3 = 0
+R3 = 0
+A1 = 0
+A2 = 0
+A3 = 0
+A4 = 0
+E1 = 0
+E2 = 0
+E3 = 0
+E4 = 0
+E5 = 0
+E6 = 0
+E7 = 0
+E8 = 0
+E9 = 0
+E10 = 0
+E11 = 0
+E12 = 0
+Fn = 0
+
+[Reactive.0]
+action = "ANALOG_DIRECTION_LS_X_NEG"
+modeUp = 0
+modeDown = 4
+brightness = 255
+
+[Reactive.1]
+action = "ANALOG_DIRECTION_LS_X_POS"
+modeUp = 0
+modeDown = 4
+brightness = 255
+
+[Reactive.2]
+action = "ANALOG_DIRECTION_RS_Y_POS"
+modeUp = 0
+modeDown = 4
+brightness = 255
+
+[Macro.0]
+macroLabel = ""
+macroType = 1
+enabled = 0
+exclusive = 1
+interruptible = 1
+showFrames = 1
+useMacroTriggerButton = 0
+macroTriggerButton = 0
+inputCount = 1
+
+[Macro.0.Input.0]
+buttonMask = 0
+duration = 16666
+waitDuration = 0
+
+[Macro.1]
+macroLabel = ""
+macroType = 1
+enabled = 0
+exclusive = 1
+interruptible = 1
+showFrames = 1
+useMacroTriggerButton = 0
+macroTriggerButton = 0
+inputCount = 1
+
+[Macro.1.Input.0]
+buttonMask = 0
+duration = 16666
+waitDuration = 0
+
+[Macro.2]
+macroLabel = ""
+macroType = 1
+enabled = 0
+exclusive = 1
+interruptible = 1
+showFrames = 1
+useMacroTriggerButton = 0
+macroTriggerButton = 0
+inputCount = 1
+
+[Macro.2.Input.0]
+buttonMask = 0
+duration = 16666
+waitDuration = 0
+
+[Macro.3]
+macroLabel = ""
+macroType = 1
+enabled = 0
+exclusive = 1
+interruptible = 1
+showFrames = 1
+useMacroTriggerButton = 0
+macroTriggerButton = 0
+inputCount = 1
+
+[Macro.3.Input.0]
+buttonMask = 0
+duration = 16666
+waitDuration = 0
+
+[Macro.4]
+macroLabel = ""
+macroType = 1
+enabled = 0
+exclusive = 1
+interruptible = 1
+showFrames = 1
+useMacroTriggerButton = 0
+macroTriggerButton = 0
+inputCount = 1
+
+[Macro.4.Input.0]
+buttonMask = 0
+duration = 16666
+waitDuration = 0
+
+[Macro.5]
+macroLabel = ""
+macroType = 1
+enabled = 0
+exclusive = 1
+interruptible = 1
+showFrames = 1
+useMacroTriggerButton = 0
+macroTriggerButton = 0
+inputCount = 1
+
+[Macro.5.Input.0]
+buttonMask = 0
+duration = 16666
+waitDuration = 0

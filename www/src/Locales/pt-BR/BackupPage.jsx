@@ -8,7 +8,7 @@ export default {
 	'api-gamepad-text': 'Gamepad',
 	'api-led-text': 'LED',
 	'api-ledTheme-text': 'Tema de LED Personalizado',
-	'api-pins-text': 'Mapeamento de Pinos',
+	'api-pins-text': 'Configuração dos botões PSX',
 	'api-profiles-text': 'Perfil de Pinos',
 	'api-addons-text': 'Add-Ons',
 };

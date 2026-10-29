@@ -20,7 +20,6 @@
 // BoardLed Module Name
 #define OnBoardLedName "OnBoardLed"
 
-#define BOARD_LED_PIN 25
 #define BLINK_INTERVAL_USB_UNMOUNTED 200
 #define BLINK_INTERVAL_CONFIG_MODE 1000
 
@@ -31,12 +30,14 @@ public:
     virtual void process();     // BoardLed Process
     virtual void preprocess() {}
     virtual void postprocess(bool sent) {}
-    virtual void reinit() {}
+    virtual void reinit() { setup(); }
     virtual std::string name() { return OnBoardLedName; }
 private:
     OnBoardLedMode onBoardLedMode;
     bool isConfigMode;
-    bool prevState;
+    int prevState;
+    int indicatorState;
+    bool blinkOn;
     uint32_t timeSinceBlink;
 };
 

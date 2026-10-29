@@ -7,12 +7,7 @@
 #include "usbhostmanager.h"
 
 #include "addons/board_led.h"  // Add-Ons
-#include "addons/buzzerspeaker.h"
-#include "addons/display.h"
-#include "addons/pleds.h"
-#include "addons/neopicoleds.h"
 #include "addons/reactiveleds.h"
-#include "addons/drv8833_rumble.h"
 
 #include <iterator>
 
@@ -38,12 +33,8 @@ void GP2040Aux::setup() {
 	}
 
 	// Setup Add-ons
-	addons.LoadAddon(new DisplayAddon());
-	addons.LoadAddon(new NeoPicoLEDAddon());
-	addons.LoadAddon(new PlayerLEDAddon());
+	// 基板RGBと単一WS2813だけを使い、他のLEDドライバによるGPIO/PIO競合を防ぐ。
 	addons.LoadAddon(new BoardLedAddon());
-	addons.LoadAddon(new BuzzerSpeakerAddon());
-	addons.LoadAddon(new DRV8833RumbleAddon());
 	addons.LoadAddon(new ReactiveLEDAddon());
 
 	// Ready to sync Core0 and Core1

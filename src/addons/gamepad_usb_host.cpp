@@ -23,3 +23,8 @@ void GamepadUSBHostAddon::setup()
 void GamepadUSBHostAddon::preprocess() {
     ((GamepadUSBHostListener*)listener)->process();
 }
+
+void GamepadUSBHostAddon::process() {
+    // ボタンは前処理でSOCD等へ渡す。軸はPSX Analog処理の後で確定させる。
+    ((GamepadUSBHostListener*)listener)->applyAnalogState();
+}

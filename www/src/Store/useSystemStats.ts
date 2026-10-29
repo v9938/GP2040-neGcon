@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { baseUrl } from '../Services/WebApi';
+import Http from '../Services/Http';
 
 const percentage = (x: number, y: number): number =>
 	parseFloat(((x / y) * 100).toFixed(2));
@@ -69,26 +70,16 @@ const useSystemStats = create<State & Actions>()((set) => ({
 		set({ loading: true });
 
 		try {
-			const [firmwareVersion, memoryReport, latestRelease] = await Promise.all([
-				fetch(`${baseUrl}/api/getFirmwareVersion`).then((res) => res.json()),
-				fetch(`${baseUrl}/api/getMemoryReport`).then((res) => res.json()),
-				fetch(
-					'https://api.github.com/repos/OpenStickCommunity/GP2040-CE/releases/latest',
-				).then((res) => res.json()),
+            const [firmwareVersion, memoryReport] = await Promise.all([
+				Http.get(`${baseUrl}/api/getFirmwareVersion`).then((res) => res.data),
+				Http.get(`${baseUrl}/api/getMemoryReport`).then((res) => res.data),
 			]);
-			const latestDownloadUrl =
-				latestRelease.assets?.find(
-					({ name }: { name: string }) =>
-						name
-							?.substring(name.lastIndexOf('_') + 1)
-							?.replace('.uf2', '')
-							?.toLowerCase() === firmwareVersion.boardConfig.toLowerCase(),
-				)?.browser_download_url ||
-				`https://github.com/OpenStickCommunity/GP2040-CE/releases/tag/${latestRelease.tag_name}`;
+            // この専用FWは公式の汎用UF2へ更新しない。NDIS/PCプレビューとも外部通信不要。
+            const latestDownloadUrl = '';
 
 			set({
 				currentVersion: firmwareVersion.version,
-				latestVersion: latestRelease.tag_name,
+                latestVersion: '',
 				latestDownloadUrl,
 				boardConfigProperties: {
 					label: firmwareVersion.boardConfigLabel,

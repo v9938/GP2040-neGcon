@@ -13,7 +13,9 @@ int64_t writeToFlash(alarm_id_t id, void *flashCache)
 {
 	while (is_spin_locked(flashLock));
 
-	multicore_lockout_start_blocking();
+	// 起動前の保存ではcore1はまだROM待機中。未初期化の相手へlockout要求を送らない。
+	const bool lockout = multicore_lockout_victim_is_initialized(1);
+	if (lockout) multicore_lockout_start_blocking();
 	uint32_t interrupts = spin_lock_blocking(flashLock);
 
 	flash_range_erase((intptr_t)EEPROM_ADDRESS_START - (intptr_t)XIP_BASE, EEPROM_SIZE_BYTES);
@@ -21,7 +23,7 @@ int64_t writeToFlash(alarm_id_t id, void *flashCache)
 
 	flashWriteAlarm = 0;
 
-	multicore_lockout_end_blocking();
+	if (lockout) multicore_lockout_end_blocking();
 	spin_unlock(flashLock, interrupts);
 
 	return 0;

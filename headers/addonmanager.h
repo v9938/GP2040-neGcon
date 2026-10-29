@@ -27,7 +27,6 @@ public:
     void PreprocessAddons();
     void ProcessAddons();
     void PostprocessAddons(bool);
-    GPAddon * GetAddon(std::string); // hack for NeoPicoLED
 private:
     std::vector<AddonBlock*> addons;    // addons currently loaded
 };

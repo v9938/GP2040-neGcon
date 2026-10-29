@@ -23,12 +23,10 @@ public:
     void setup();           // setup core0
     void run();             // loop core0
 private:
-    Gamepad snapshot;
     AddonManager addons;
     // GPIO debouncer
     void debounceGpioGetAll();
     Mask_t buttonGpios;
-    uint32_t gpioDebounceTime[NUM_BANK0_GPIOS];
 
     struct RebootHotkeys {
         RebootHotkeys();
@@ -61,7 +59,9 @@ private:
         SET_INPUT_MODE_EGRET,
         SET_INPUT_MODE_ASTRO,
         SET_INPUT_MODE_PSCLASSIC,
-        SET_INPUT_MODE_XBOXORIGINAL
+        SET_INPUT_MODE_XBOXORIGINAL,
+        SET_INPUT_MODE_SWITCH_PRO,
+        SET_INPUT_MODE_XE1AJ,
     };
     BootAction getBootAction();
     void getReinitGamepad(Gamepad * gamepad);

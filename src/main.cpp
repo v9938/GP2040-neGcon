@@ -9,6 +9,7 @@
 // GP2040 includes
 #include "gp2040.h"
 #include "gp2040aux.h"
+#include "xiao_leds.h"
 
 #include <cstdlib>
 
@@ -33,6 +34,8 @@ void core1() {
 }
 
 int main() {
+	xiaoBoardLedStartup();
+
 	// Create GP2040 Main Core (core0), Core1 is dependent on Core0
 	gp2040Core0 = new GP2040();
 	gp2040Core1 = new GP2040Aux();

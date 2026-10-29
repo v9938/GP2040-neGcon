@@ -1,181 +1,190 @@
 #include "addons/analog.h"
+#include "analog_preview.h"
 #include "config.pb.h"
-#include "enums.pb.h"
-#include "hardware/adc.h"
-#include "helper.h"
-#include "storagemanager.h"
 #include "drivermanager.h"
+#include "peripheralmanager.h"
+#include "psx_input.h"
+#include "storagemanager.h"
 
-#include <math.h>
-
-#define ADC_MAX ((1 << 12) - 1) // 4095
-#define ADC_PIN_OFFSET 26
-#define ANALOG_MAX 1.0f
-#define ANALOG_CENTER 0.5f
-#define ANALOG_MINIMUM 0.0f
+#include <algorithm>
+#include <cmath>
 
 bool AnalogInput::available() {
-    return Storage::getInstance().getAddonOptions().analogOptions.enabled;
+    return true;
 }
 
 void AnalogInput::setup() {
-    const AnalogOptions& analogOptions = Storage::getInstance().getAddonOptions().analogOptions;
-    
-    // Setup our ADC Pair of Sticks
-    adc_pairs[0].x_pin = analogOptions.analogAdc1PinX;
-    adc_pairs[0].y_pin = analogOptions.analogAdc1PinY;
-    adc_pairs[0].analog_invert = analogOptions.analogAdc1Invert;
-    adc_pairs[0].analog_dpad = analogOptions.analogAdc1Mode;
-    adc_pairs[0].ema_option = analogOptions.analog_smoothing;
-    adc_pairs[0].ema_smoothing = analogOptions.smoothing_factor / 1000.0f;
-    adc_pairs[0].error_rate = analogOptions.analog_error / 1000.0f;
-    adc_pairs[0].in_deadzone = analogOptions.inner_deadzone / 100.0f;
-    adc_pairs[0].out_deadzone = analogOptions.outer_deadzone / 100.0f;
-    adc_pairs[0].auto_calibration = analogOptions.auto_calibrate;
-    adc_pairs[0].forced_circularity = analogOptions.forced_circularity;
-    adc_pairs[1].x_pin = analogOptions.analogAdc2PinX;
-    adc_pairs[1].y_pin = analogOptions.analogAdc2PinY;
-    adc_pairs[1].analog_invert = analogOptions.analogAdc2Invert;
-    adc_pairs[1].analog_dpad = analogOptions.analogAdc2Mode;
-    adc_pairs[1].ema_option = analogOptions.analog_smoothing2;
-    adc_pairs[1].ema_smoothing = analogOptions.smoothing_factor2 / 1000.0f;
-    adc_pairs[1].error_rate = analogOptions.analog_error2 / 1000.0f;
-    adc_pairs[1].in_deadzone = analogOptions.inner_deadzone2 / 100.0f;
-    adc_pairs[1].out_deadzone = analogOptions.outer_deadzone2 / 100.0f;
-    adc_pairs[1].auto_calibration = analogOptions.auto_calibrate2;
-    adc_pairs[1].forced_circularity = analogOptions.forced_circularity2;
-    
+    const AnalogOptions& options = Storage::getInstance().getAddonOptions().analogOptions;
+    sticks[0].analog_invert = options.analogAdc1Invert;
+    sticks[0].analog_dpad = options.has_analogAdc1Mode ? options.analogAdc1Mode : DPAD_MODE_LEFT_ANALOG;
+    sticks[0].ema_option = options.analog_smoothing;
+    sticks[0].ema_smoothing = options.smoothing_factor;
+    sticks[0].error_rate = options.analog_error;
+    sticks[0].in_deadzone = options.inner_deadzone;
+    sticks[0].out_deadzone = options.outer_deadzone;
+    sticks[0].auto_calibration = options.auto_calibrate;
+    sticks[0].forced_circularity = options.forced_circularity;
+    sticks[1].analog_invert = options.analogAdc2Invert;
+    sticks[1].analog_dpad = options.has_analogAdc2Mode ? options.analogAdc2Mode : DPAD_MODE_RIGHT_ANALOG;
+    sticks[1].ema_option = options.analog_smoothing2;
+    sticks[1].ema_smoothing = options.smoothing_factor2;
+    sticks[1].error_rate = options.analog_error2;
+    sticks[1].in_deadzone = options.inner_deadzone2;
+    sticks[1].out_deadzone = options.outer_deadzone2;
+    sticks[1].auto_calibration = options.auto_calibrate2;
+    sticks[1].forced_circularity = options.forced_circularity2;
 
-    // Setup defaults and helpers
-    for (int i = 0; i < ADC_COUNT; i++) {
-        adc_pairs[i].x_pin_adc = adc_pairs[i].x_pin - ADC_PIN_OFFSET;
-        adc_pairs[i].y_pin_adc = adc_pairs[i].y_pin - ADC_PIN_OFFSET;
-        adc_pairs[i].x_value = ANALOG_CENTER;
-        adc_pairs[i].y_value = ANALOG_CENTER;
-        adc_pairs[i].xy_magnitude = 0.0f;
-        adc_pairs[i].x_magnitude = 0.0f;
-        adc_pairs[i].y_magnitude = 0.0f;
-        adc_pairs[i].x_ema = 0.0f;
-        adc_pairs[i].y_ema = 0.0f;
+    for (auto &stick : sticks) {
+        // Keep storage units here; the shared transform performs the original divisions.
+        stick.ema_smoothing = std::isfinite(stick.ema_smoothing)
+            ? std::clamp(stick.ema_smoothing, 0.0f, 1000.0f) : 0.0f;
+        stick.in_deadzone = std::clamp(stick.in_deadzone, 0.0f, 100.0f);
+        stick.out_deadzone = std::clamp(stick.out_deadzone, 0.0f, 100.0f);
     }
+    // 旧保存データに追加フィールドがない場合もneGconの既定割り当てを使う。
+    pressure_modes[0] = options.has_negconIMode ? options.negconIMode : 12;
+    pressure_modes[1] = options.has_negconIIMode ? options.negconIIMode : 11;
+    pressure_modes[2] = options.has_negconLMode ? options.negconLMode : 0;
+    resetCalibration();
+    last_generation = 0;
+    last_id = 0;
+    last_connected = last_analog = last_negcon = false;
+    // reinit後も旧出力の所有情報を残し、次のprocessで解放する。
+}
 
-    // Intialize and auto center X/Y for each pair
-    for (int i = 0; i < ADC_COUNT; i++) {
-        if(isValidPin(adc_pairs[i].x_pin)) {
-            adc_gpio_init(adc_pairs[i].x_pin);
-            if (adc_pairs[i].auto_calibration) {
-                adc_select_input(adc_pairs[i].x_pin - ADC_PIN_OFFSET);
-                adc_pairs[i].x_center = adc_read();
-            }
-        }
-        if(isValidPin(adc_pairs[i].y_pin)) {
-            adc_gpio_init(adc_pairs[i].y_pin);
-            if (adc_pairs[i].auto_calibration) {
-                adc_select_input(adc_pairs[i].y_pin - ADC_PIN_OFFSET);
-                adc_pairs[i].y_center = adc_read();
-            }
-        }
+void AnalogInput::resetCalibration() {
+    for (auto &stick : sticks) {
+        stick.x_center = stick.y_center = 128;
+        stick.x_ema = stick.y_ema = 0.5f;
+        stick.calibrated = false;
     }
+}
+
+void AnalogInput::processStick(int stick_num, uint8_t raw_x, uint8_t raw_y,
+    bool one_axis, float &x, float &y) {
+    auto &stick = sticks[stick_num];
+    // One transform per original process call; do not gate EMA on frameSequence.
+    const AnalogPreviewStickSettings settings = {
+        static_cast<uint32_t>(stick.analog_dpad), static_cast<uint32_t>(stick.analog_invert),
+        static_cast<uint32_t>(stick.in_deadzone), static_cast<uint32_t>(stick.out_deadzone),
+        stick.ema_smoothing, static_cast<uint32_t>(stick.error_rate),
+        stick.ema_option, stick.forced_circularity, stick.auto_calibration, 0};
+    AnalogPreviewStickState state = {stick.x_ema, stick.y_ema,
+        stick.x_center, stick.y_center, stick.calibrated, 0};
+    analog_transform_stick(raw_x, raw_y, one_axis, &settings, &state, &x, &y);
+    stick.x_ema = state.xEma;
+    stick.y_ema = state.yEma;
+    stick.x_center = state.xCenter;
+    stick.y_center = state.yCenter;
+    stick.calibrated = state.calibrated;
+}
+
+void AnalogInput::preprocess() {
+    // USB前処理には全チャネルの基準値を渡し、PSX処理後だけ所有マスクで保護する。
+    Storage::getInstance().GetGamepad()->psxAnalogOutputs = 0;
 }
 
 void AnalogInput::process() {
-    Gamepad * gamepad = Storage::getInstance().GetGamepad();
-    
-    uint16_t joystickMid = GAMEPAD_JOYSTICK_MID;
-    if ( DriverManager::getInstance().getDriver() != nullptr ) {
-        joystickMid = DriverManager::getInstance().getDriver()->GetJoystickMidValue();
-    }
-
-    for(int i = 0; i < ADC_COUNT; i++) {
-        // Read X-Axis
-        if (isValidPin(adc_pairs[i].x_pin)) {
-            adc_pairs[i].x_value = readPin(i, adc_pairs[i].x_pin_adc, adc_pairs[i].x_center);
-            if (adc_pairs[i].analog_invert == InvertMode::INVERT_X || 
-                adc_pairs[i].analog_invert == InvertMode::INVERT_XY) {
-                adc_pairs[i].x_value = ANALOG_MAX - adc_pairs[i].x_value;
-            }
-            if (adc_pairs[i].ema_option) {
-                adc_pairs[i].x_value = emaCalculation(i, adc_pairs[i].x_value, adc_pairs[i].x_ema);
-                adc_pairs[i].x_ema = adc_pairs[i].x_value;
-            }
+    Gamepad *gamepad = Storage::getInstance().GetGamepad();
+    const PsxSnapshot& snapshot = PsxInput::getInstance().snapshot();
+    uint32_t midpoint = GAMEPAD_JOYSTICK_MID;
+    if (DriverManager::getInstance().getDriver() != nullptr)
+        midpoint = DriverManager::getInstance().getDriver()->GetJoystickMidValue();
+    const auto convert = [midpoint](float value) { return analog_preview_convert(value, midpoint); };
+    uint16_t *axes[] = {&gamepad->state.lx, &gamepad->state.ly,
+        &gamepad->state.rx, &gamepad->state.ry};
+    uint8_t *triggers[] = {&gamepad->state.lt, &gamepad->state.rt};
+    const auto pairOffset = [](DpadMode mode) {
+        return mode == DPAD_MODE_LEFT_ANALOG ? 0 : mode == DPAD_MODE_RIGHT_ANALOG ? 2 : -1;
+    };
+    uint8_t outputs = 0;
+    if (snapshot.connected && (snapshot.jogcon || snapshot.analog || snapshot.negcon)) {
+        for (int i = 0; i < (snapshot.jogcon || snapshot.negcon ? 1 : ADC_COUNT); ++i) {
+            const int offset = pairOffset(sticks[i].analog_dpad);
+            if (offset >= 0)
+                outputs |= (snapshot.jogcon || snapshot.negcon ? 1u : 3u) << offset;
         }
-        // Read Y-Axis
-        if (isValidPin(adc_pairs[i].y_pin)) {
-            adc_pairs[i].y_value = readPin(i, adc_pairs[i].y_pin_adc, adc_pairs[i].y_center);
-            if (adc_pairs[i].analog_invert == InvertMode::INVERT_Y || 
-                adc_pairs[i].analog_invert == InvertMode::INVERT_XY) {
-                adc_pairs[i].y_value = ANALOG_MAX - adc_pairs[i].y_value;
-            }
-            if (adc_pairs[i].ema_option) {
-                adc_pairs[i].y_value = emaCalculation(i, adc_pairs[i].y_value, adc_pairs[i].y_ema);
-                adc_pairs[i].y_ema = adc_pairs[i].y_value;
-            }
-        }
-        // Look for dead-zones and circularity
-        adc_pairs[i].xy_magnitude = magnitudeCalculation(i, adc_pairs[i]);
-        if (adc_pairs[i].xy_magnitude < adc_pairs[i].in_deadzone) {
-            adc_pairs[i].x_value = ANALOG_CENTER;
-            adc_pairs[i].y_value = ANALOG_CENTER;
-        } else {
-            radialDeadzone(i, adc_pairs[i]);
-        }
-
-        if (adc_pairs[i].analog_dpad == DpadMode::DPAD_MODE_LEFT_ANALOG) {
-            if ( joystickMid == 0x8000 ) {
-                gamepad->state.lx = static_cast<uint16_t>(std::ceil(65535.0f * adc_pairs[i].x_value));
-                gamepad->state.ly = static_cast<uint16_t>(std::ceil(65535.0f * adc_pairs[i].y_value));
-            } else { // 0x7FFF
-                gamepad->state.lx = static_cast<uint16_t>(65535.0f * adc_pairs[i].x_value);
-                gamepad->state.ly = static_cast<uint16_t>(65535.0f * adc_pairs[i].y_value);
-            }
-        } else if (adc_pairs[i].analog_dpad == DpadMode::DPAD_MODE_RIGHT_ANALOG) {
-            if ( joystickMid == 0x8000 ) {
-                gamepad->state.rx = static_cast<uint16_t>(std::ceil(65535.0f * adc_pairs[i].x_value));
-                gamepad->state.ry = static_cast<uint16_t>(std::ceil(65535.0f * adc_pairs[i].y_value));
-            } else { // 0x7FFF
-                gamepad->state.rx = static_cast<uint16_t>(65535.0f * adc_pairs[i].x_value);
-                gamepad->state.ry = static_cast<uint16_t>(65535.0f * adc_pairs[i].y_value);
+        if (!snapshot.jogcon && snapshot.negcon) {
+            // デジタルL2/R2も既存トリガーとして保護する。圧力割当なしでも有効。
+            outputs |= 0x30;
+            for (uint32_t mode : pressure_modes) {
+                if (mode >= 1 && mode <= 12)
+                    outputs |= 1u << ((mode - 1) / 3);
+                else if (mode == 13 || mode == 14)
+                    outputs |= 1u << (mode - 9);
             }
         }
     }
-}
+    gamepad->psxAnalogOutputs = outputs;
+    const bool changed = snapshot.generation != last_generation || snapshot.id != last_id
+        || snapshot.connected != last_connected || snapshot.analog != last_analog
+        || snapshot.negcon != last_negcon;
+    last_generation = snapshot.generation;
+    last_id = snapshot.id;
+    last_connected = snapshot.connected;
+    last_analog = snapshot.analog;
+    last_negcon = snapshot.negcon;
 
-float AnalogInput::readPin(int stick_num, Pin_t pin_adc, uint16_t center) {
-    adc_select_input(pin_adc);
-    uint16_t adc_value = adc_read();
-    if (adc_pairs[stick_num].auto_calibration) {
-        if (adc_value > center) {
-            adc_value = map(adc_value, center, ADC_MAX, ADC_MAX / 2, ADC_MAX);
-        } else if (adc_value == center) {
-            adc_value = ADC_MAX / 2;
-        } else {
-            adc_value = map(adc_value, 0, center, 0, ADC_MAX / 2);
-        }
+    // USBHostはpreprocessで先に書き込む。PSX不在時はその状態/能力を消さない。
+    const bool usb_host = Storage::getInstance().getAddonOptions().gamepadUSBHostOptions.enabled
+        && PeripheralManager::getInstance().isUSBEnabled(0);
+    const bool preserve_host_capabilities = usb_host && !snapshot.jogcon;
+    gamepad->hasLeftAnalogStick = preserve_host_capabilities || (outputs & 0x03);
+    gamepad->hasRightAnalogStick = preserve_host_capabilities || (outputs & 0x0C);
+    gamepad->hasAnalogTriggers = preserve_host_capabilities || (outputs & 0x30);
+
+    const uint8_t released = usb_host ? 0 : owned_outputs & ~outputs;
+    const uint8_t neutral = released | (changed ? outputs : 0);
+    for (int i = 0; i < 4; ++i) {
+        if (neutral & (1u << i))
+            *axes[i] = midpoint;
     }
-    return ((float)adc_value) / ADC_MAX;
-}
-
-float AnalogInput::emaCalculation(int stick_num, float ema_value, float ema_previous) {
-    return (adc_pairs[stick_num].ema_smoothing * ema_value) + ((1.0f - adc_pairs[stick_num].ema_smoothing) * ema_previous);
-}
-
-uint16_t AnalogInput::map(uint16_t x, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t out_max) {
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-float AnalogInput::magnitudeCalculation(int stick_num, adc_instance & adc_inst) {
-    adc_inst.x_magnitude = adc_inst.x_value - ANALOG_CENTER;
-    adc_inst.y_magnitude = adc_inst.y_value - ANALOG_CENTER;
-    return adc_pairs[stick_num].error_rate * std::sqrt((adc_inst.x_magnitude * adc_inst.x_magnitude) + (adc_inst.y_magnitude * adc_inst.y_magnitude));
-}
-
-void AnalogInput::radialDeadzone(int stick_num, adc_instance & adc_inst) {
-    float scaling_factor = (adc_inst.xy_magnitude - adc_pairs[stick_num].in_deadzone) / (adc_pairs[stick_num].out_deadzone - adc_pairs[stick_num].in_deadzone);
-    if (adc_pairs[stick_num].forced_circularity == true) {
-        scaling_factor = std::fmin(scaling_factor, ANALOG_CENTER);
+    for (int i = 0; i < 2; ++i) {
+        if (neutral & (1u << (i + 4)))
+            *triggers[i] = 0;
     }
-    adc_inst.x_value = ((adc_inst.x_magnitude / adc_inst.xy_magnitude) * scaling_factor) + ANALOG_CENTER;
-    adc_inst.y_value = ((adc_inst.y_magnitude / adc_inst.xy_magnitude) * scaling_factor) + ANALOG_CENTER;
-    adc_inst.x_value = std::clamp(adc_inst.x_value, ANALOG_MINIMUM, ANALOG_MAX);
-    adc_inst.y_value = std::clamp(adc_inst.y_value, ANALOG_MINIMUM, ANALOG_MAX);
+    owned_outputs = outputs;
+    if (changed || !snapshot.connected || (!snapshot.jogcon && !snapshot.analog && !snapshot.negcon)) {
+        // 切断/機種変更のフレームは即座にneutral。中心採取は次の有効フレーム。
+        resetCalibration();
+        return;
+    }
+
+    if (snapshot.jogcon) {
+        // Preserve dial resolution; JOGCON never passes through the 8-bit stick/pressure path.
+        const int offset = pairOffset(sticks[0].analog_dpad);
+        const auto& options = Storage::getInstance().getAddonOptions().analogOptions;
+        if (offset >= 0) *axes[offset] = analog_preview_jogcon(snapshot.jogPosition,
+            options.jogconDeadzone, options.jogconMax, sticks[0].analog_invert, midpoint);
+        return;
+    }
+
+    for (int i = 0; i < (snapshot.negcon ? 1 : ADC_COUNT); ++i) {
+        const int offset = pairOffset(sticks[i].analog_dpad);
+        if (offset < 0)
+            continue;
+        float x, y;
+        processStick(i, i == 0 ? snapshot.lx : snapshot.rx,
+            i == 0 ? snapshot.ly : snapshot.ry, snapshot.negcon, x, y);
+        *axes[offset] = convert(x);
+        // neGconに存在しないYや第二スティックはUSBHost等の入力を上書きしない。
+        if (!snapshot.negcon)
+            *axes[offset + 1] = convert(y);
+    }
+    if (snapshot.negcon) {
+        const auto& options = Storage::getInstance().getAddonOptions().analogOptions;
+        const uint8_t pressures[] = {snapshot.pressureI, snapshot.pressureII, snapshot.pressureL};
+        const uint32_t inner[] = {options.has_negconIInnerDeadzone ? options.negconIInnerDeadzone : 0,
+            options.has_negconIIInnerDeadzone ? options.negconIIInnerDeadzone : 0,
+            options.has_negconLInnerDeadzone ? options.negconLInnerDeadzone : 0};
+        const uint32_t outer[] = {options.has_negconIOuterDeadzone ? options.negconIOuterDeadzone : 100,
+            options.has_negconIIOuterDeadzone ? options.negconIIOuterDeadzone : 100,
+            options.has_negconLOuterDeadzone ? options.negconLOuterDeadzone : 100};
+        uint16_t values[] = {*axes[0], *axes[1], *axes[2], *axes[3]};
+        uint8_t baseTriggers[] = {static_cast<uint8_t>((gamepad->state.buttons & GAMEPAD_MASK_L2) ? 255 : *triggers[0]),
+            static_cast<uint8_t>((gamepad->state.buttons & GAMEPAD_MASK_R2) ? 255 : *triggers[1])};
+        analog_preview_add_pressures(pressures, pressure_modes, inner, outer, midpoint, values, baseTriggers);
+        for (unsigned i = 0; i < 4; ++i) *axes[i] = values[i];
+        for (unsigned i = 0; i < 2; ++i) *triggers[i] = baseTriggers[i];
+    }
 }

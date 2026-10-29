@@ -1,4 +1,24 @@
 export default {
+	'psx-analog-description': 'PSX-Analogeingang ist immer aktiv. DS1/DS2-Sticks müssen verschiedene Left/Right-Ausgänge nutzen. neGcon-Twist folgt den Einstellungen des ersten Paars. I/II/L werden mit dem korrigierten Druck u (0..1) zum aktuellen Achsenwert addiert: full addiert (u-0.5)*65535, von negativer halber Skala bei 0 bis positiver halber Skala bei 1; center+/- addiert u*(+/-32767.5); LT/RT addiert u*255. Im Modus full wird der bestehende Wert auch ohne Druck in die negative Richtung verschoben. Überlagerung ist erlaubt; nur die Endsumme wird begrenzt. Digital PSX hat keine Analogsticks.',
+	'negcon-output': 'Analogausgang',
+	'negcon-threshold': 'Digitale Druckschwelle (0-255)',
+	'negcon-inner-deadzone': 'Innere Druck-Totzone (%)',
+	'negcon-outer-deadzone': 'Äußere Druck-Totzone (%)',
+	'negcon-digital-enabled': 'Digitalen Tastendruck aktivieren',
+	'jogcon-deadzone': 'Drehregler-Totzone',
+	'jogcon-max': 'Maximaler Eingang',
+	'jogcon-counts': 'Zählwerte',
+	'jogcon-forceback': 'Rückstellkraft aktivieren',
+	'jogcon-reset': 'Drehreglerposition zurücksetzen',
+	'jogcon-position': 'RAW-Position',
+	'jogcon-feedback': 'Rückstellkraft',
+	'jogcon-state-0': 'Nicht verbunden',
+	'jogcon-state-1': 'Bereit',
+	'jogcon-state-2': 'Rückkehr',
+	'jogcon-state-3': 'Abgeschlossen',
+	'jogcon-state-4': 'Zeitüberschreitung',
+	'jogcon-state-5': 'Fehler',
+	'jogcon-sleep-help': 'Nach 60 Sekunden ohne Tastendruck ist der Motor eventuell im Ruhezustand. Eine echte Taste druecken und loslassen, dann das Rad zuruecksetzen.',
 	'header-text': 'Add-On Konfiguration',
 	'sub-header-text':
 		'Verwenden Sie das unten stehende Formular, um die Add-On-Optionen in GP2040-CE neu zu konfigurieren.',
@@ -124,7 +144,7 @@ export default {
 	'keyboard-host-sub-header-text':
 		'Nachfolgend sind die Daten, +, - und 5V (optional) Pins einzustellen. Nur der + und der 5V-Pin können konfiguriert werden.',
 	'pin-config-moved-to-core-text':
-		'Hinweis: Die Pins für dieses Add-On werden jetzt auf der Seite für die Pin-Zuordnung konfiguriert',
+		'Hinweis: Die Tastenbelegung für dieses Add-On wird jetzt auf der Seite <0>PSX-Tastenbelegung</0> konfiguriert',
 	'input-history-header-text': 'Eingabeverlauf',
 	'input-history-length-label': 'Verlaufslänge (Zeichen)',
 	'input-history-col-label': 'Spalte',

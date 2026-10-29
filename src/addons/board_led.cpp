@@ -3,85 +3,66 @@
 #include "drivers/ps4/PS4Driver.h"
 #include "usbdriver.h"
 #include "helper.h"
-#include "config.pb.h"
+#include "xiao_leds.h"
 
 bool BoardLedAddon::available() {
-    const OnBoardLedOptions& options = Storage::getInstance().getAddonOptions().onBoardLedOptions;
-    return options.enabled && options.mode != OnBoardLedMode::ON_BOARD_LED_MODE_OFF; // Available only when it's not set to off
+    // OFF/無効でもロードし、main入口で点灯した赤を必ず消す。
+    return true;
 }
 
 void BoardLedAddon::setup() {
     const OnBoardLedOptions& options = Storage::getInstance().getAddonOptions().onBoardLedOptions;
-    onBoardLedMode = options.mode;
+    onBoardLedMode = options.enabled ? options.mode : ON_BOARD_LED_MODE_OFF;
     isConfigMode = DriverManager::getInstance().isConfigMode();
     timeSinceBlink = getMillis();
     prevState = -1;
-
-    gpio_init(BOARD_LED_PIN);
-    gpio_set_dir(BOARD_LED_PIN, GPIO_OUT);
+    indicatorState = -1;
+    blinkOn = true;
+    process();
 }
 
 void BoardLedAddon::process() {
-    bool state = 0;
-    Gamepad * processedGamepad;
-    uint16_t joystickMid = GAMEPAD_JOYSTICK_MID;
-    if ( DriverManager::getInstance().getDriver() != nullptr ) {
-        joystickMid = DriverManager::getInstance().getDriver()->GetJoystickMidValue();
-    }
+    int color = 0; // bit0=赤、bit1=緑、bit2=青
+    Gamepad* gamepad = Storage::getInstance().GetProcessedGamepad();
+    GPDriver* driver = DriverManager::getInstance().getDriver();
+    const uint16_t mid = driver ? driver->GetJoystickMidValue() : GAMEPAD_JOYSTICK_MID;
     switch (onBoardLedMode) {
-        case OnBoardLedMode::ON_BOARD_LED_MODE_INPUT_TEST: // Blinks on input
-            processedGamepad = Storage::getInstance().GetProcessedGamepad();
-            state =    (processedGamepad->state.buttons != 0)
-                    || (processedGamepad->state.dpad    != 0)
-                    || (processedGamepad->state.lx      != joystickMid)
-                    || (processedGamepad->state.rx      != joystickMid)
-                    || (processedGamepad->state.ly      != joystickMid)
-                    || (processedGamepad->state.ry      != joystickMid)
-                    || (processedGamepad->state.lt      != 0)
-                    || (processedGamepad->state.rt      != 0)
-                    || (processedGamepad->state.aux     != 0);
-            if (prevState != state) {
-                gpio_put(BOARD_LED_PIN, state ? 1 : 0);
-            }
-            prevState = state;
-            break;
-        case OnBoardLedMode::ON_BOARD_LED_MODE_MODE_INDICATOR: // Blinks based on USB state and config mode
-            if (!get_usb_mounted()) { // USB not mounted
-                uint32_t millis = getMillis();
-                if ((millis - timeSinceBlink) > BLINK_INTERVAL_USB_UNMOUNTED) {
-                    gpio_put(BOARD_LED_PIN, prevState ? 1 : 0);
-                    timeSinceBlink = millis;
-                    prevState = !prevState;
-                }
-            } else {
-                if (isConfigMode) { // Current mode is config
-                    uint32_t millis = getMillis();
-                    if ((millis - timeSinceBlink) > BLINK_INTERVAL_CONFIG_MODE) {
-                        gpio_put(BOARD_LED_PIN, prevState ? 1 : 0);
-                        timeSinceBlink = millis;
-                        prevState = !prevState;
-                    }
-                } else { // Regular mode and functional
-                    if (prevState != 1) {
-                        gpio_put(BOARD_LED_PIN, 1);
-                        prevState = 1;
-                    }
-                }
+        case ON_BOARD_LED_MODE_INPUT_TEST:
+            if (gamepad && (gamepad->state.buttons || gamepad->state.dpad || gamepad->state.aux ||
+                gamepad->state.lt || gamepad->state.rt || gamepad->state.lx != mid ||
+                gamepad->state.ly != mid || gamepad->state.rx != mid || gamepad->state.ry != mid)) {
+                color = 2;
             }
             break;
-        case OnBoardLedMode::ON_BOARD_LED_MODE_PS_AUTH:
-            processedGamepad = Storage::getInstance().GetProcessedGamepad();
-            if(processedGamepad->getOptions().inputMode == INPUT_MODE_PS4 ||
-                processedGamepad->getOptions().inputMode == INPUT_MODE_PS5) {
-                state = ((PS4Driver*)DriverManager::getInstance().getDriver())->getAuthSent() == true;
+        case ON_BOARD_LED_MODE_MODE_INDICATOR: {
+            const int indicator = !get_usb_mounted() ? 1 : isConfigMode ? 4 : 2;
+            const uint32_t now = getMillis();
+            if (indicator != indicatorState) {
+                indicatorState = indicator;
+                timeSinceBlink = now;
+                blinkOn = true;
             }
-            if (prevState != state) {
-                gpio_put(BOARD_LED_PIN, state ? 1 : 0);
+            const uint32_t interval = indicator == 1 ? BLINK_INTERVAL_USB_UNMOUNTED : BLINK_INTERVAL_CONFIG_MODE;
+            if (indicator != 2 && now - timeSinceBlink >= interval) {
+                timeSinceBlink = now;
+                blinkOn = !blinkOn;
             }
-            prevState = state;
+            color = indicator == 2 || blinkOn ? indicator : 0;
             break;
-        case OnBoardLedMode::ON_BOARD_LED_MODE_OFF:
+        }
+        case ON_BOARD_LED_MODE_PS_AUTH:
+            if (!isConfigMode && driver && gamepad && (gamepad->getOptions().inputMode == INPUT_MODE_PS4 ||
+                gamepad->getOptions().inputMode == INPUT_MODE_PS5) &&
+                static_cast<PS4Driver*>(driver)->getAuthSent()) {
+                color = 2;
+            }
+            break;
+        case ON_BOARD_LED_MODE_OFF:
         default:
             break;
+    }
+    if (prevState != color) {
+        xiaoBoardLedSet(color & 1, color & 2, color & 4);
+        prevState = color;
     }
 }

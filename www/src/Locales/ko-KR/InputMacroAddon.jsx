@@ -21,7 +21,7 @@ export default {
 	'input-macro-time-label-frames': '프레임',
 	'input-macro-release-and-wait-label': '실행 후 대기',
 	'input-macro-sub-header':
-		'참고: 지정된 핀에 매크로를 할당할 경우 구성의 핀 매핑 페이지를 확인하십시오. 매크로는 매크로 버튼과 게임패드 버튼 조합으로도 사용가능합니다.',
+		'참고: PSX 입력에 매크로를 할당할 경우 구성의 PSX 버튼 매핑 설정 페이지를 확인하십시오. 매크로는 매크로 버튼과 게임패드 버튼 조합으로도 사용가능합니다.',
 	'input-macro-macro-label-label': '라벨',
 	'input-macro-add-input-label': '입력 추가 +',
 	'input-macro-type': {

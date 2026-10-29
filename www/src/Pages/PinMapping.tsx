@@ -6,7 +6,6 @@ import {
 	useEffect,
 	useState,
 } from 'react';
-import { NavLink } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import {
 	Alert,
@@ -20,7 +19,7 @@ import {
 	Tab,
 	Tooltip,
 } from 'react-bootstrap';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import invert from 'lodash/invert';
 import omit from 'lodash/omit';
 
@@ -40,6 +39,9 @@ import './PinMapping.scss';
 import { MultiValue, SingleValue } from 'react-select';
 import InfoCircle from '../Icons/InfoCircle';
 import WebApi from '../Services/WebApi';
+import { PSX_INPUTS } from '../Data/PSX';
+import PsxPresetFiles from '../Components/PsxPresetFiles';
+import InputModeButtonTable from '../Components/InputModeButtonTable';
 
 type OptionType = {
 	label: string;
@@ -225,14 +227,15 @@ const PinSelectList = memo(function PinSelectList({
 						);
 					}
 				} else {
+					const option = Array.isArray(selected) ? selected[0] : selected as OptionType;
 					setProfilePin(profileIndex, pin, {
-						action: selected[0].value,
+						action: option.value,
 						customButtonMask: 0,
 						customDpadMask: 0,
 					});
 				}
 			},
-		[],
+		[profileIndex, setProfilePin],
 	);
 
 	const getOptionLabel = useCallback(
@@ -241,26 +244,26 @@ const PinSelectList = memo(function PinSelectList({
 			// Need to fallback as some button actions are not part of button names
 			return (
 				(labelKey && buttonNames[labelKey]) ||
-				t(`PinMapping:actions.${option.label}`)
+				t(`Proto:GpioAction.${option.label}`)
 			);
 		},
 		[buttonNames],
 	);
 	return (
 		<div className="pin-grid gap-3 mt-2">
-			{Object.entries(pins).map(([pin, pinData], index) => (
-				<div key={`select-${index}`} className="d-flex align-items-center">
-					<div className="d-flex flex-shrink-0" style={{ width: '3.5rem' }}>
-						<label>GP{index}</label>
+			{PSX_INPUTS.map(({ key: pin, label }) => (
+				<div key={pin} className="d-flex align-items-center">
+					<div className="d-flex flex-shrink-0" style={{ width: '9rem' }}>
+						<label htmlFor={`profile-${profileIndex}-${pin}`}>{label}</label>
 					</div>
 					<CustomSelect
+						inputId={`profile-${profileIndex}-${pin}`}
 						isClearable
-						isMulti={!isDisabled(pinData.action)}
+						isMulti
 						options={groupedOptions}
-						isDisabled={isDisabled(pinData.action)}
 						getOptionLabel={getOptionLabel}
 						onChange={onChange(pin)}
-						value={getMultiValue(pinData)}
+						value={getMultiValue(pins[pin] || { action: BUTTON_ACTIONS.NONE, customButtonMask: 0, customDpadMask: 0 })}
 					/>
 				</div>
 			))}
@@ -283,6 +286,7 @@ const PinSection = memo(function PinSection({
 	const enabled = useProfilesStore(
 		(state) => state.profiles[profileIndex].enabled,
 	);
+	const profile = useProfilesStore((state) => state.profiles[profileIndex]);
 	const profileLabel =
 		useProfilesStore((state) => state.profiles[profileIndex].profileLabel) ||
 		t('PinMapping:profile-label-default', {
@@ -321,18 +325,10 @@ const PinSection = memo(function PinSection({
 	return (
 		<>
 			<div className="alert alert-warning">
-				<Trans ns="PinMapping" i18nKey="alert-text">
-					Mapping buttons to pins that aren&apos;t connected or available can
-					leave the device in non-functional state. To clear the invalid
-					configuration go to the{' '}
-					<NavLink to="/reset-settings">Reset Settings</NavLink> page.
-				</Trans>
-				<br />
-				<br />
-				{t(`PinMapping:profile-pins-warning`)}
+				{t('PinMapping:psx-description')}
 			</div>
 			<Section
-				title={t('PinMapping:profile-pin-mapping-title', {
+				title={t('PinMapping:psx-profile-title', {
 					profileLabel,
 				})}
 			>
@@ -372,15 +368,19 @@ const PinSection = memo(function PinSection({
 					</div>
 					<hr />
 
+					<InputModeButtonTable profile={profile} profileIndex={profileIndex} />
 					<PinSelectList profileIndex={profileIndex} />
-					<div className="d-flex gap-3 my-3">
+					<PsxPresetFiles profileIndex={profileIndex} activeProfileIndex={activeProfile} />
+					<div className="d-flex flex-wrap gap-3 my-3">
 						<CaptureButton
 							labels={Object.values(buttonNames)}
-							onChange={(label, pin) =>
+							onChange={(label, pin) => {
+								const input = PSX_INPUTS.find((input) => input.slot === pin);
+								if (!input) return;
 								setProfilePin(
 									profileIndex,
 									// Convert getHeldPins format to setPinMappings format
-									pin < 10 ? `pin0${pin}` : `pin${pin}`,
+									input.key,
 									{
 										// Maps current mode buttons to actions
 										action:
@@ -392,15 +392,15 @@ const PinSection = memo(function PinSection({
 										customButtonMask: 0,
 										customDpadMask: 0,
 									},
-								)
-							}
+								);
+							}}
 						/>
 						{profileIndex > 0 && (
 							<Button onClick={() => copyBaseProfile(profileIndex)}>
 								{t(`PinMapping:profile-copy-base`)}
 							</Button>
 						)}
-						<Button type="submit">{t('Common:button-save-label')}</Button>
+						<Button type="submit">{t('Common:button-save-label')}（プロファイルのみ）</Button>
 					</div>
 					{saveMessage && <Alert variant="info">{saveMessage}</Alert>}
 				</Form>
@@ -415,11 +415,11 @@ export default function PinMapping() {
 	const profiles = useProfilesStore((state) => state.profiles);
 	const loadingProfiles = useProfilesStore((state) => state.loadingProfiles);
 
-	const [pressedPin, setPressedPin] = useState<number | null>(null);
 	const { t } = useTranslation('');
 
 	useEffect(() => {
-		fetchProfiles();
+		// 画面往復でもTXT読込済みの未保存プロファイルを保持する。
+		if (!useProfilesStore.getState().profiles.length) fetchProfiles();
 	}, []);
 
 	return (
@@ -446,7 +446,7 @@ export default function PinMapping() {
 								</Nav.Link>
 							</Nav.Item>
 						))}
-						{profiles.length !== MAX_PROFILES && (
+						{profiles.length > 0 && profiles.length < MAX_PROFILES && (
 							<Button
 								type="button"
 								className="mt-1"
@@ -457,20 +457,6 @@ export default function PinMapping() {
 							</Button>
 						)}
 					</Nav>
-					<hr />
-					<p className="text-center">{t('PinMapping:sub-header-text')}</p>
-					<div className="d-flex justify-content-center pb-3">
-						<CaptureButton
-							buttonLabel={t('PinMapping:pin-viewer')}
-							labels={['']}
-							onChange={(_, pin) => setPressedPin(pin)}
-						/>
-					</div>
-					{pressedPin !== null && (
-						<div className="alert alert-info mt-3">
-							<strong>{t('PinMapping:pin-pressed', { pressedPin })}</strong>
-						</div>
-					)}
 				</Col>
 				<Col md={9}>
 					<Tab.Content>

@@ -1,69 +1,60 @@
 #include "addons/bootsel_button.h"
 #include "storagemanager.h"
 #include "hardware/gpio.h"
-#include "hardware/sync.h"
 #include "hardware/structs/ioqspi.h"
 #include "hardware/structs/sio.h"
-#include "helper.h"
-#include "config.pb.h"
+#include "pico/flash.h"
+#include "pico/multicore.h"
 
-bool __no_inline_not_in_flash_func(BootselButtonAddon::isBootselPressed)() {
-	const uint CS_PIN_INDEX = 1;
-
-	// Must disable interrupts, as interrupt handlers may be in flash, and we
-	// are about to temporarily disable flash access!
-	uint32_t flags = save_and_disable_interrupts();
-
-	// Set chip select to Hi-Z
-	hw_write_masked(&ioqspi_hw->io[CS_PIN_INDEX].ctrl,
-					GPIO_OVERRIDE_LOW << IO_QSPI_GPIO_QSPI_SS_CTRL_OEOVER_LSB,
-					IO_QSPI_GPIO_QSPI_SS_CTRL_OEOVER_BITS);
-
-	// Note we can't call into any sleep functions in flash right now
-	for (volatile int i = 0; i < 1000; ++i);
-
-	// The HI GPIO registers in SIO can observe and control the 6 QSPI pins.
-	// Note the button pulls the pin *low* when pressed.
-	bool button_state = !(sio_hw->gpio_hi_in & (1u << CS_PIN_INDEX));
-
-	// Need to restore the state of chip select, else we are going to have a
-	// bad time when we return to code in flash!
-	hw_write_masked(&ioqspi_hw->io[CS_PIN_INDEX].ctrl,
-					GPIO_OVERRIDE_NORMAL << IO_QSPI_GPIO_QSPI_SS_CTRL_OEOVER_LSB,
-					IO_QSPI_GPIO_QSPI_SS_CTRL_OEOVER_BITS);
-
-	restore_interrupts(flags);
-
-	return button_state;
+namespace {
+void __no_inline_not_in_flash_func(sampleBootsel)(void* result) {
+    const uint cs = 1;
+    const uint32_t savedCtrl = ioqspi_hw->io[cs].ctrl;
+    // flash_safe_execute has stopped core 1 and disabled local interrupts.
+    hw_write_masked(&ioqspi_hw->io[cs].ctrl,
+                    GPIO_OVERRIDE_LOW << IO_QSPI_GPIO_QSPI_SS_CTRL_OEOVER_LSB,
+                    IO_QSPI_GPIO_QSPI_SS_CTRL_OEOVER_BITS);
+    for (volatile int i = 0; i < 1000; ++i) {}
+    const bool pressed = !(sio_hw->gpio_hi_in & (1u << cs));
+    ioqspi_hw->io[cs].ctrl = savedCtrl;
+    *static_cast<bool*>(result) = pressed;
+}
 }
 
 bool BootselButtonAddon::available() {
-    const BootselButtonOptions& options = Storage::getInstance().getAddonOptions().bootselButtonOptions;
-	return options.enabled && options.buttonMap != 0;
+    const auto& options = Storage::getInstance().getAddonOptions().bootselButtonOptions;
+    return options.enabled && options.buttonMap != 0;
 }
 
 void BootselButtonAddon::setup() {
-    const BootselButtonOptions& options = Storage::getInstance().getAddonOptions().bootselButtonOptions;
-	bootselButtonMap = options.buttonMap;
+    bootselButtonMap = Storage::getInstance().getAddonOptions().bootselButtonOptions.buttonMap;
 }
 
 void BootselButtonAddon::preprocess() {
-	Gamepad * gamepad = Storage::getInstance().GetGamepad();
-	if (isBootselPressed()) {
-		switch (bootselButtonMap) {
-			case (GAMEPAD_MASK_DU):
-				gamepad->state.dpad |= GAMEPAD_MASK_UP;
-				break;
-			case (GAMEPAD_MASK_DD):
-				gamepad->state.dpad |= GAMEPAD_MASK_DOWN;
-				break;
-			case (GAMEPAD_MASK_DL):
-				gamepad->state.dpad |= GAMEPAD_MASK_LEFT;
-				break;
-			case (GAMEPAD_MASK_DR):
-				gamepad->state.dpad |= GAMEPAD_MASK_RIGHT;
-				break;
-			default: gamepad->state.buttons |= bootselButtonMap;
-		}
-	}
+    const auto& options = Storage::getInstance().getAddonOptions().bootselButtonOptions;
+    if (!options.enabled || !options.buttonMap) return;
+    const uint64_t now = time_us_64();
+    if (now >= nextSample) {
+        nextSample = now + 5000;
+        // Boot-action preprocessing also runs before core 1 has been launched.
+        if (!multicore_lockout_victim_is_initialized(1)) return;
+        bool pressed = false;
+        if (flash_safe_execute(sampleBootsel, &pressed, 1) != PICO_OK) {
+            stablePressed = false;
+            sampledPressed = false;
+            changedAt = now;
+            return;
+        }
+        if (pressed != sampledPressed) {
+            sampledPressed = pressed;
+            changedAt = now;
+        } else if (now - changedAt >= 10000) {
+            stablePressed = sampledPressed;
+        }
+    }
+    if (stablePressed) {
+        Gamepad* gamepad = Storage::getInstance().GetGamepad();
+        gamepad->state.dpad |= (bootselButtonMap >> 16) & GAMEPAD_MASK_DPAD;
+        gamepad->state.buttons |= bootselButtonMap & 0xfff0ffffu;
+    }
 }

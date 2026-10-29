@@ -147,7 +147,8 @@
 //--------------------------------------------------------------------
 
 // Size of buffer to hold descriptors and other data used for enumeration
-#define CFG_TUH_ENUMERATION_BUFSIZE 256
+// DS4 v2はAudio等を含む複合機器。256バイトでは構成記述子が収まらない。
+#define CFG_TUH_ENUMERATION_BUFSIZE 1024
 
 #define CFG_TUH_HUB                 1
 // max device support (excluding hub device)

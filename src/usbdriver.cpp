@@ -8,6 +8,26 @@
 
 #include "tusb.h"
 #include "drivermanager.h"
+#ifdef PSX_USB_DIAGNOSTICS
+#include "device/dcd.h"
+
+// SWD停止による再列挙への影響を避け、USBイベントとSETUPだけをRAMへ記録する。
+// 内容データや認証応答は記録しない。
+volatile uint32_t usbDiagnosticEvents[DCD_EVENT_COUNT] = {};
+volatile uint32_t usbDiagnosticSetupCount = 0;
+volatile uint8_t usbDiagnosticSetup[64][8] = {};
+void tud_event_hook_cb(uint8_t rhport, uint32_t eventid, bool in_isr) {
+    (void)rhport;
+    (void)in_isr;
+    if (eventid < DCD_EVENT_COUNT) ++usbDiagnosticEvents[eventid];
+    if (eventid == DCD_EVENT_SETUP_RECEIVED) {
+        const uint32_t slot = usbDiagnosticSetupCount % 64;
+        const volatile uint8_t* setup = reinterpret_cast<const volatile uint8_t*>(0x50100000);
+        for (unsigned i = 0; i < 8; ++i) usbDiagnosticSetup[slot][i] = setup[i];
+        ++usbDiagnosticSetupCount;
+    }
+}
+#endif
 
 static bool usb_mounted;
 static bool usb_suspended;

@@ -11,7 +11,7 @@ export default {
 	'api-gamepad-text': 'Gamepad',
 	'api-led-text': 'LED',
 	'api-ledTheme-text': 'Benutzerdefiniertes LED-Thema',
-	'api-pins-text': 'Pin Zuweisungen',
+	'api-pins-text': 'PSX-Tastenbelegung',
 	'api-profiles-text': 'Profile Zuweisungen',
 	'api-addons-text': 'Add-Ons',
 };

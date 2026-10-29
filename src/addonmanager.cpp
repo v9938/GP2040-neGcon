@@ -49,12 +49,3 @@ void AddonManager::PostprocessAddons(bool reportSent) {
         (*it)->ptr->postprocess(reportSent);
     }
 }
-
-// HACK : change this for NeoPicoLED
-GPAddon * AddonManager::GetAddon(std::string name) { // hack for NeoPicoLED
-    for (std::vector<AddonBlock*>::iterator it = addons.begin(); it != addons.end(); it++) {
-        if ( (*it)->ptr->name() == name )
-            return (*it)->ptr;
-    }
-    return nullptr;
-}

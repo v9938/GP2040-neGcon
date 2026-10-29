@@ -7,6 +7,7 @@ export default {
 	'current-input-mode-label': 'Modo de Entrada Actual',
 	'input-mode-extra-label': 'Intercambiar Touchpad y Share',
 	'input-mode-options': {
+		xe1aj: 'XE1AJ-USB',
 		none: 'Ningún Modo Seleccionado',
 		xinput: 'XInput',
 		'nintendo-switch': 'Nintendo Switch',
@@ -83,7 +84,7 @@ export default {
 		'<span>INFO:</span> Xinput funcionará en una PC sin autenticación. Si desea usarlo en una Xbox 360, elija autenticación USB y conecte un dongle apropiado.',
 	'hotkey-settings-label': 'Configuración de Teclas Rápidas',
 	'hotkey-settings-sub-header':
-		'El control deslizante <strong>Fn</strong> proporciona un botón de Función mapeable en la página <link_pinmap>Mapeo de Pines</link_pinmap>. Al seleccionar la opción de control deslizante <strong>Fn</strong>, el botón de Función debe mantenerse presionado junto con la configuración de tecla rápida seleccionada. <br /> Además, seleccione <strong>Ninguno</strong> del menú desplegable para desasignar cualquier botón.',
+		'El control deslizante <strong>Fn</strong> proporciona un botón de Función mapeable en la página <link_pinmap>Configuración de botones PSX</link_pinmap>. Al seleccionar la opción de control deslizante <strong>Fn</strong>, el botón de Función debe mantenerse presionado junto con la configuración de tecla rápida seleccionada. <br /> Además, seleccione <strong>Ninguno</strong> del menú desplegable para desasignar cualquier botón.',
 	'hotkey-settings-warning':
 		'El botón de Función no está mapeado. El control deslizante Fn estará deshabilitado.',
 	'hotkey-actions': {

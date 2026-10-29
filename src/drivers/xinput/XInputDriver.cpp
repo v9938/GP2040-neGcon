@@ -6,6 +6,7 @@
 #include "drivers/xinput/XInputDriver.h"
 #include "drivers/shared/driverhelper.h"
 #include "storagemanager.h"
+#include "psx_latency.h"
 
 #define USB_SETUP_DEVICE_TO_HOST 0x80
 #define USB_SETUP_HOST_TO_DEVICE 0x00
@@ -138,6 +139,80 @@ void XInputDriver::initialize() {
         ._reserved = { },
     };
 
+    GamepadOptions & gamepadOptions = Storage::getInstance().getGamepadOptions();
+    deviceType = gamepadOptions.inputDeviceType;
+
+    // controller type bindings
+    if (deviceType == InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_WHEEL) {
+        // wheel
+        buttonGas = new GamepadButtonMapping(0);
+        buttonBrake = new GamepadButtonMapping(0);
+        buttonSteerLeft = new GamepadButtonMapping(0);
+        buttonSteerRight = new GamepadButtonMapping(0);
+    } else if (deviceType == InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_GUITAR) {
+        // guitar
+        buttonFretGreen = new GamepadButtonMapping(0);
+        buttonFretRed = new GamepadButtonMapping(0);
+        buttonFretYellow = new GamepadButtonMapping(0);
+        buttonFretBlue = new GamepadButtonMapping(0);
+        buttonFretOrange = new GamepadButtonMapping(0);
+        buttonFretSoloGreen = new GamepadButtonMapping(0);
+        buttonFretSoloRed = new GamepadButtonMapping(0);
+        buttonFretSoloYellow = new GamepadButtonMapping(0);
+        buttonFretSoloBlue = new GamepadButtonMapping(0);
+        buttonFretSoloOrange = new GamepadButtonMapping(0);
+        buttonWhammy = new GamepadButtonMapping(0);
+        buttonTilt = new GamepadButtonMapping(0);
+    } else if (deviceType == InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_DRUM) {
+        // drum
+        buttonDrumPadRed = new GamepadButtonMapping(0);
+        buttonDrumPadBlue = new GamepadButtonMapping(0);
+        buttonDrumPadYellow = new GamepadButtonMapping(0);
+        buttonDrumPadGreen = new GamepadButtonMapping(0);
+        buttonCymbalYellow = new GamepadButtonMapping(0);
+        buttonCymbalBlue = new GamepadButtonMapping(0);
+        buttonCymbalGreen = new GamepadButtonMapping(0);
+        buttonKickPedalLeft = new GamepadButtonMapping(0);
+        buttonKickPedalRight = new GamepadButtonMapping(0);
+    } else {
+        // assume gamepad if not special cased
+    }
+
+    GpioMappingInfo* pinMappings = Storage::getInstance().getProfilePinMappings();
+    for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
+        switch (pinMappings[pin].action) {
+            case GpioAction::MODE_GUITAR_FRET_GREEN: buttonFretGreen->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_FRET_RED: buttonFretRed->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_FRET_YELLOW: buttonFretYellow->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_FRET_BLUE: buttonFretBlue->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_FRET_ORANGE: buttonFretOrange->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_FRET_SOLO_GREEN: buttonFretSoloGreen->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_FRET_SOLO_RED: buttonFretSoloRed->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_FRET_SOLO_YELLOW: buttonFretSoloYellow->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_FRET_SOLO_BLUE: buttonFretSoloBlue->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_FRET_SOLO_ORANGE: buttonFretSoloOrange->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_WHAMMY: buttonWhammy->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_GUITAR_TILT: buttonTilt->pinMask |= 1 << pin; break;
+
+            case GpioAction::MODE_DRUM_RED_DRUMPAD: buttonDrumPadRed->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_DRUM_BLUE_DRUMPAD: buttonDrumPadBlue->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_DRUM_YELLOW_DRUMPAD: buttonDrumPadYellow->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_DRUM_GREEN_DRUMPAD: buttonDrumPadGreen->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_DRUM_YELLOW_CYMBAL: buttonCymbalYellow->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_DRUM_BLUE_CYMBAL: buttonCymbalBlue->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_DRUM_GREEN_CYMBAL: buttonCymbalGreen->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_DRUM_KICK_PEDAL_LEFT: buttonKickPedalLeft->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_DRUM_KICK_PEDAL_RIGHT: buttonKickPedalRight->pinMask |= 1 << pin; break;
+
+            case GpioAction::MODE_WHEEL_STEERING_LEFT: buttonSteerLeft->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_WHEEL_STEERING_RIGHT: buttonSteerRight->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_WHEEL_PEDAL_GAS: buttonGas->pinMask |= 1 << pin; break;
+            case GpioAction::MODE_WHEEL_PEDAL_BRAKE: buttonBrake->pinMask |= 1 << pin; break;
+
+            default:    break;
+        }
+    }
+
     class_driver = {
     #if CFG_TUSB_DEBUG >= 2
         .name = "XINPUT",
@@ -178,6 +253,7 @@ bool XInputDriver::getAuthSent() {
 
 bool XInputDriver::process(Gamepad * gamepad) {
     Gamepad * processedGamepad = Storage::getInstance().GetProcessedGamepad();
+    Mask_t values = Storage::getInstance().GetGamepad()->debouncedGpio;
 
     xinputReport.buttons1 = 0
         | (gamepad->pressedUp()    ? XBOX_MASK_UP    : 0)
@@ -216,6 +292,45 @@ bool XInputDriver::process(Gamepad * gamepad) {
         xinputReport.rt = gamepad->pressedR2() ? 0xFF : 0;
     }
 
+    // map to Xinput for special buttons
+    if (deviceType == InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_WHEEL) {
+        // wheel
+        if (values & buttonSteerLeft->pinMask)      { xinputReport.lx = GAMEPAD_JOYSTICK_MIN; }
+        if (values & buttonSteerRight->pinMask)     { xinputReport.lx = GAMEPAD_JOYSTICK_MAX; }
+        if (values & buttonBrake->pinMask)          { xinputReport.lt = INT8_MAX; }
+        if (values & buttonGas->pinMask)            { xinputReport.rt = INT8_MAX; }
+    } else if (deviceType == InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_GUITAR) {
+        // guitar
+        if (values & buttonFretGreen->pinMask)      { xinputReport.buttons2 |= XBOX_MASK_A; }
+        if (values & buttonFretRed->pinMask)        { xinputReport.buttons2 |= XBOX_MASK_B; }
+        if (values & buttonFretYellow->pinMask)     { xinputReport.buttons2 |= XBOX_MASK_Y; }
+        if (values & buttonFretBlue->pinMask)       { xinputReport.buttons2 |= XBOX_MASK_X; }
+        if (values & buttonFretOrange->pinMask)     { xinputReport.buttons2 |= XBOX_MASK_LB; }
+        
+        if (values & buttonFretSoloGreen->pinMask)  { xinputReport.buttons1 |= XBOX_MASK_LS; xinputReport.buttons2 |= XBOX_MASK_A; }
+        if (values & buttonFretSoloRed->pinMask)    { xinputReport.buttons1 |= XBOX_MASK_LS; xinputReport.buttons2 |= XBOX_MASK_B; }
+        if (values & buttonFretSoloYellow->pinMask) { xinputReport.buttons1 |= XBOX_MASK_LS; xinputReport.buttons2 |= XBOX_MASK_Y; }
+        if (values & buttonFretSoloBlue->pinMask)   { xinputReport.buttons1 |= XBOX_MASK_LS; xinputReport.buttons2 |= XBOX_MASK_X; }
+        if (values & buttonFretSoloOrange->pinMask) { xinputReport.buttons1 |= XBOX_MASK_LS; xinputReport.buttons2 |= XBOX_MASK_LB; }
+        
+        if (values & buttonWhammy->pinMask)         { xinputReport.rx = GAMEPAD_JOYSTICK_MAX; }
+        if (values & buttonTilt->pinMask)           { xinputReport.ry = GAMEPAD_JOYSTICK_MAX; }
+    } else if (deviceType == InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_DRUM) {
+        // drum
+        if (values & buttonDrumPadRed->pinMask)     { xinputReport.buttons1 |= XBOX_MASK_RS; xinputReport.buttons2 |= XBOX_MASK_B; }
+        if (values & buttonDrumPadBlue->pinMask)    { xinputReport.buttons1 |= XBOX_MASK_RS; xinputReport.buttons2 |= XBOX_MASK_X; }
+        if (values & buttonDrumPadYellow->pinMask)  { xinputReport.buttons1 |= XBOX_MASK_RS; xinputReport.buttons2 |= XBOX_MASK_Y; }
+        if (values & buttonDrumPadGreen->pinMask)   { xinputReport.buttons1 |= XBOX_MASK_RS; xinputReport.buttons2 |= XBOX_MASK_A; }
+        if (values & buttonCymbalYellow->pinMask)   { xinputReport.buttons1 |= XBOX_MASK_UP; xinputReport.buttons2 |= XBOX_MASK_Y|XBOX_MASK_RB; }
+        if (values & buttonCymbalBlue->pinMask)     { xinputReport.buttons1 |= XBOX_MASK_DOWN; xinputReport.buttons2 |= XBOX_MASK_X|XBOX_MASK_RB; }
+        if (values & buttonCymbalGreen->pinMask)    { xinputReport.buttons2 |= XBOX_MASK_A|XBOX_MASK_RB; }
+
+        if (values & buttonKickPedalLeft->pinMask)  { xinputReport.buttons2 |= XBOX_MASK_LB; }
+        if (values & buttonKickPedalRight->pinMask) { xinputReport.buttons1 |= XBOX_MASK_LS; }
+    } else {
+        // assume gamepad if not special cased
+    }
+
     bool reportSent = false;
 
     // compare against previous report and send new
@@ -223,6 +338,8 @@ bool XInputDriver::process(Gamepad * gamepad) {
         if ( tud_ready() &&											// Is the device ready?
             (endpoint_in != 0) && (!usbd_edpt_busy(0, endpoint_in)) ) // Is the IN endpoint available?
         {
+            // IN完了IRQが先行しないよう、転送開始より前に計測対象を登録する。
+            psx_latency_queued();
             usbd_edpt_claim(0, endpoint_in);								// Take control of IN endpoint
             usbd_edpt_xfer(0, endpoint_in, (uint8_t *)&xinputReport, sizeof(XInputReport)); // Send report buffer
             usbd_edpt_release(0, endpoint_in);								// Release control of IN endpoint
@@ -373,6 +490,11 @@ bool XInputDriver::vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_co
 }
 
 const uint16_t * XInputDriver::get_descriptor_string_cb(uint8_t index, uint16_t langid) {
+    // index 0は文字列ではなく、USBで対応する言語IDの配列。
+    if (index == 0) {
+        static const uint16_t languages[] = {0x0304, 0x0409};
+        return languages;
+    }
     char *value;
     // Check for override settings
     GamepadOptions & gamepadOptions = Storage::getInstance().getGamepadOptions();
@@ -386,6 +508,7 @@ const uint16_t * XInputDriver::get_descriptor_string_cb(uint8_t index, uint16_t 
                 break;
             case 3:
                 value = gamepadOptions.usbDescVersion;
+                break;
             default:
                 value = (char *)xinput_get_string_descriptor(index);
                 break;
@@ -414,7 +537,27 @@ const uint8_t * XInputDriver::get_hid_descriptor_report_cb(uint8_t itf) {
 }
 
 const uint8_t * XInputDriver::get_descriptor_configuration_cb(uint8_t index) {
-    return xinput_configuration_descriptor;
+    uint16_t configDescriptorSize = sizeof(xinput_configuration_descriptor);
+    memcpy(configDescriptor, &xinput_configuration_descriptor, configDescriptorSize);
+
+    // check subtype
+    GamepadOptions & gamepadOptions = Storage::getInstance().getGamepadOptions();
+    deviceType = gamepadOptions.inputDeviceType;
+    if (deviceType == InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_WHEEL) {
+        // wheel
+        configDescriptor[22] = XInputSubtype::XINPUT_SUBTYPE_WHEEL;
+    } else if (deviceType == InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_GUITAR) {
+        // guitar
+        configDescriptor[22] = XInputSubtype::XINPUT_SUBTYPE_GUITAR;
+    } else if (deviceType == InputModeDeviceType::INPUT_MODE_DEVICE_TYPE_DRUM) {
+        // drum
+        configDescriptor[22] = XInputSubtype::XINPUT_SUBTYPE_DRUMS;
+    } else {
+        // assume gamepad if not special cased
+        configDescriptor[22] = XInputSubtype::XINPUT_SUBTYPE_GAMEPAD;
+    }
+
+    return configDescriptor;
 }
 
 const uint8_t * XInputDriver::get_descriptor_device_qualifier_cb() {

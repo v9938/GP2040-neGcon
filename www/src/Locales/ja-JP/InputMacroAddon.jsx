@@ -1,6 +1,6 @@
 export default {
-	'input-macro-board-led-enabled':
-		'コントローラのLEDを利用してマクロの状態を表示',
+	'input-macro-editor-tab': 'マクロエディタ',
+	'input-macro-advanced-tab': '詳細設定',
 	'input-macro-macro-enabled': '有効化',
 	'input-macro-macro-enabled-badge': '有効',
 	'input-macro-macro-disabled-badge': '無効',
@@ -18,7 +18,7 @@ export default {
 	'input-macro-time-label-frames': 'フレーム',
 	'input-macro-release-and-wait-label': '離して待ち ',
 	'input-macro-sub-header':
-		'注：端子に割り当てられたマクロについては、端子割り当て設定ページで設定を確認ください。マクロはコントローラーのボタンと特定のマクロボタンの組み合わせに割り当てることも可能です。',
+		'アドオン設定でマクロを有効にします。PSX ボタン割り当て設定で入力に Macro 1～Macro 6 を割り当てると直接起動できます。マクロボタン＋コントローラボタンを利用する場合は、入力に Macro を割り当て、選択したボタンと同時に押します。配線設定は不要です。',
 	'input-macro-macro-label-label': 'ラベル',
 	'input-macro-add-input-label': '入力追加 +',
 	'input-macro-type': {
@@ -35,5 +35,5 @@ export default {
 	'table-thread-actions': '入力数',
 	'table-thread-status': 'ステータス',
 	'input-macro-macro-trigger-type-button': 'ボタン',
-	'input-macro-macro-trigger-type-pin': '端子',
+	'input-macro-macro-trigger-type-action': 'PSXアクション',
 };

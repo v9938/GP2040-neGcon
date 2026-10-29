@@ -13,7 +13,12 @@ PeripheralSPI::PeripheralSPI()
     _TX = PICO_DEFAULT_SPI_TX_PIN;
     _RX = PICO_DEFAULT_SPI_RX_PIN;
     _SCK = PICO_DEFAULT_SPI_SCK_PIN;
+#ifdef PICO_DEFAULT_SPI_CSN_PIN
     _CS = PICO_DEFAULT_SPI_CSN_PIN;
+#else
+    // XIAOにはSDK既定CSピンがない。明示設定されるまで未割当とする。
+    _CS = static_cast<uint8_t>(-1);
+#endif
     _Speed = SPI_DEFAULT_SPEED;
 #endif
 }

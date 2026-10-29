@@ -7,8 +7,10 @@ export default {
 	'current-input-mode-label': '現在の入力モード',
 	'input-mode-extra-label': 'Switch タッチパッドと Share',
 	'input-mode-options': {
+		xe1aj: 'XE1AJ-USB',
 		none: 'モード未選択',
 		'nintendo-switch': '任天堂Switch',
+		'nintendo-switch-pro': '任天堂Switch Pro',
 		generic: '標準HID',
 		keyboard: 'キーボード',
 		mdmini: 'Sega Genesis/メガドライブ Mini',
@@ -73,10 +75,10 @@ export default {
 	'xbone-mode-text':
 		'<span>補足: </span> XBox One モードで正しく認証するにははUSBホスト接続とUSBドングルが必要です。',
 	'xinput-mode-text':
-		'<span>補足:</span> Xinput モードはPCでは認証無しで利用可能です。Xbox 360本体で利用する場合は適切な認証用のUSBドングルを接続することで利用可能です。',
+		'<span>補足:</span> XInput モードはドングル無しでXbox 360で利用可能です。外部の認証ドングルを利用したい場合のみUSBを選択してください。',
 	'hotkey-settings-label': 'ホットキー設定',
 	'hotkey-settings-sub-header':
-		'<strong>Fn</strong>スライダーは<link_pinmap>端子割り当て設定</link_pinmap>ページで割り当て可能なファンクションボタン機能を有効化します。<strong>Fn</strong>スライダーを有効化することで、選択されたホットキーと同時にファンクションボタンを押す様に設定できます。<br />また、<strong>None</strong>を選択することでボタンの割り当てを解除できます。',
+		'<strong>Fn</strong>スライダーは<link_pinmap>PSX ボタン割り当て設定</link_pinmap>で割り当て可能なファンクションボタン機能を有効化します。<strong>Fn</strong>スライダーを有効化することで、選択されたホットキーと同時にファンクションボタンを押す様に設定できます。<br />また、<strong>None</strong>を選択することでボタンの割り当てを解除できます。',
 	'hotkey-settings-warning':
 		'ファンクションボタンが未割り当てです。Fnスライダーは無効化されます。',
 	'hotkey-actions': {
@@ -94,6 +96,8 @@ export default {
 		'invert-x': '上下入力反転',
 		'invert-y': '左右入力反転',
 		'toggle-4way-joystick-mode': '4方向ジョイスティックモード切り替え',
+		'enable-4way-joystick-mode': '4方向ジョイスティックモードを有効化',
+		'disable-4way-joystick-mode': '4方向ジョイスティックモードを無効化',
 		'toggle-ddi-4way-joystick-mode': 'DDI 4方向ジョイスティックモード切り替え',
 		'b1-button': 'B1 ボタン',
 		'b2-button': 'B2 ボタン',
@@ -132,7 +136,10 @@ export default {
 		'menu-nav-right': 'メニュー 右',
 		'menu-nav-select': 'メニュー 選択',
 		'menu-nav-back': 'メニュー 戻る',
-		'menu-nav-toggle': 'メニュー トグル',
+		'menu-nav-toggle': 'メニュー 切替え',
+		'focus-mode-toggle': 'フォーカスモード切替え',
+		'turbo-count-up': 'ターボカウントUP',
+		'turbo-count-down': 'ターボカウントDOWN',
 	},
 	'forced-setup-mode-label': '強制セットアップモード',
 	'forced-setup-mode-options': {
@@ -160,4 +167,5 @@ export default {
 		'product-id': 'プロダクトID',
 		'vendor-id': 'ベンダーID',
 	},
+	'input-mode-device-type-label': '入力モードコントローラ種別',
 };

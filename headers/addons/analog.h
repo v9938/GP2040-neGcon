@@ -7,6 +7,7 @@
 #include "enums.pb.h"
 #include "types.h"
 
+// config_utilsが旧ADC設定の既定値を参照するため、マクロは残す。
 #ifndef ANALOG_INPUT_ENABLED
 #define ANALOG_INPUT_ENABLED 0
 #endif
@@ -106,21 +107,13 @@
 
 typedef struct
 {
-    Pin_t x_pin;
-    Pin_t y_pin;
-    Pin_t x_pin_adc;
-    Pin_t y_pin_adc;
-    float x_value;
-    float y_value;
-    uint16_t x_center;
-    uint16_t y_center;
-    float xy_magnitude;
-    float x_magnitude;
-    float y_magnitude;
+    uint8_t x_center = 128;
+    uint8_t y_center = 128;
+    bool calibrated = false;
     InvertMode analog_invert;
     DpadMode analog_dpad;
-    float x_ema;
-    float y_ema;
+    float x_ema = 0.5f;
+    float y_ema = 0.5f;
     bool ema_option;
     float ema_smoothing;
     float error_rate;
@@ -128,24 +121,29 @@ typedef struct
     float out_deadzone;
     bool auto_calibration;
     bool forced_circularity;
-} adc_instance;
+} analog_instance;
 
 class AnalogInput : public GPAddon {
 public:
     virtual bool available();
     virtual void setup();       // Analog Setup
     virtual void process();     // Analog Process
-    virtual void preprocess() {}
+    virtual void preprocess();
     virtual void postprocess(bool sent) {}
-    virtual void reinit() {}
+    virtual void reinit() { setup(); }
     virtual std::string name() { return AnalogName; }
 private:
-    float readPin(int stick_num, Pin_t pin, uint16_t center);
-    float emaCalculation(int stick_num, float ema_value, float ema_previous);
-    uint16_t map(uint16_t x, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t out_max);
-    float magnitudeCalculation(int stick_num, adc_instance & adc_inst);
-    void radialDeadzone(int stick_num, adc_instance & adc_inst);
-    adc_instance adc_pairs[ADC_COUNT];
+    void resetCalibration();
+    void processStick(int stick_num, uint8_t raw_x, uint8_t raw_y, bool one_axis,
+        float &x, float &y);
+    analog_instance sticks[ADC_COUNT];
+    uint32_t pressure_modes[3] = {12, 11, 0};
+    uint32_t last_generation = 0;
+    uint8_t last_id = 0;
+    uint8_t owned_outputs = 0;
+    bool last_connected = false;
+    bool last_analog = false;
+    bool last_negcon = false;
 };
 
 #endif  // _Analog_H_

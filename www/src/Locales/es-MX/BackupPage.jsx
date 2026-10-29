@@ -11,7 +11,7 @@ export default {
 	'api-led-text': 'LED',
 	'api-ledTheme-text': 'Tema LED Personalizado',
 	'api-macros-text': 'Mapeo de Macros',
-	'api-pins-text': 'Mapeo de Pines',
+	'api-pins-text': 'Configuración de botones PSX',
 	'api-profiles-text': 'Mapeo de Perfiles',
 	'api-addons-text': 'Complementos',
 	'api-splash-text': 'Imagen de Inicio',

@@ -1,4 +1,5 @@
 #include "eventmanager.h"
+#include <algorithm>
 #include "storagemanager.h"
 #include "enums.pb.h"
 
@@ -50,3 +51,4 @@ void EventManager::triggerEvent(GPEvent* event) {
 void EventManager::clearEventHandlers() {
 
 }
+#include <algorithm>

@@ -1,4 +1,6 @@
 #include "config_utils.h"
+#include "storagemanager.h"
+#include <cmath>
 
 #include "config.pb.h"
 #include "enums.pb.h"
@@ -11,28 +13,19 @@
 #include "GamepadConfig.h"
 #include "version.h"
 #include "addons/analog.h"
+#include "legacy_addon_defaults.h"
+#include "hardware/i2c.h"
+#include "hardware/spi.h"
 #include "addons/board_led.h"
 #include "addons/bootsel_button.h"
-#include "addons/buzzerspeaker.h"
-#include "addons/dualdirectional.h"
-#include "addons/tilt.h"
-#include "addons/focus_mode.h"
-#include "addons/i2canalog1219.h"
-#include "addons/display.h"
+
 #include "addons/keyboard_host.h"
-#include "addons/neopicoleds.h"
-#include "addons/pleds.h"
+
 #include "addons/reactiveleds.h"
 #include "addons/reverse.h"
-#include "addons/slider_socd.h"
-#include "addons/spi_analog_ads1256.h"
-#include "addons/turbo.h"
-#include "addons/wiiext.h"
-#include "addons/snes_input.h"
+
 #include "addons/input_macro.h"
-#include "addons/rotaryencoder.h"
-#include "addons/i2c_gpio_pcf8575.h"
-#include "addons/drv8833_rumble.h"
+
 #include "addons/gamepad_usb_host.h"
 
 #include "CRC32.h"
@@ -587,8 +580,8 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.animationOptions, alCustomStaticColorIndex, AMBIENT_STATIC_COLOR);
 
     // addonOptions.bootselButtonOptions
-    INIT_UNSET_PROPERTY(config.addonOptions.bootselButtonOptions, enabled, !!BOOTSEL_BUTTON_ENABLED);
-    INIT_UNSET_PROPERTY(config.addonOptions.bootselButtonOptions, buttonMap, BOOTSEL_BUTTON_MASK);
+    INIT_UNSET_PROPERTY(config.addonOptions.bootselButtonOptions, enabled, false);
+    INIT_UNSET_PROPERTY(config.addonOptions.bootselButtonOptions, buttonMap, 0);
 
     // addonOptions.onBoardLedOptions
     INIT_UNSET_PROPERTY(config.addonOptions.onBoardLedOptions, enabled, !!BOARD_LED_ENABLED);
@@ -598,26 +591,44 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, enabled, !!ANALOG_INPUT_ENABLED);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc1PinX, ANALOG_ADC_1_VRX);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc1PinY, ANALOG_ADC_1_VRY);
-    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc1Mode, ANALOG_ADC_1_MODE);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc1Mode, DPAD_MODE_LEFT_ANALOG);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc1Invert, ANALOG_ADC_1_INVERT);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc2PinX, ANALOG_ADC_2_VRX);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc2PinY, ANALOG_ADC_2_VRY);
-    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc2Mode, ANALOG_ADC_2_MODE);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc2Mode, DPAD_MODE_RIGHT_ANALOG);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analogAdc2Invert, ANALOG_ADC_2_INVERT);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, forced_circularity, !!FORCED_CIRCULARITY_ENABLED);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, inner_deadzone, DEFAULT_INNER_DEADZONE);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, outer_deadzone, DEFAULT_OUTER_DEADZONE);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, auto_calibrate, !!AUTO_CALIBRATE_ENABLED);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analog_smoothing, !!ANALOG_SMOOTHING_ENABLED);
-    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, smoothing_factor, !!SMOOTHING_FACTOR);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, smoothing_factor, SMOOTHING_FACTOR);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analog_error, ANALOG_ERROR);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analog_smoothing2, !!ANALOG_SMOOTHING2_ENABLED);
-    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, smoothing_factor2, !!SMOOTHING_FACTOR2);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, smoothing_factor2, SMOOTHING_FACTOR2);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, analog_error2, ANALOG_ERROR2);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, inner_deadzone2, DEFAULT_INNER_DEADZONE2);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, outer_deadzone2, DEFAULT_OUTER_DEADZONE2);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, auto_calibrate2, !!AUTO_CALIBRATE2_ENABLED);
     INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, forced_circularity2, !!FORCED_CIRCULARITY2_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIMode, 12);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIIMode, 11);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconLMode, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIThreshold, 128);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIIThreshold, 128);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconLThreshold, 240);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIInnerDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIOuterDeadzone, 100);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIIInnerDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIIOuterDeadzone, 100);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconLInnerDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconLOuterDeadzone, 100);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIDigitalEnabled, true);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconIIDigitalEnabled, true);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, negconLDigitalEnabled, true);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, jogconDeadzone, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, jogconMax, 100);
+    INIT_UNSET_PROPERTY(config.addonOptions.analogOptions, jogconForcebackEnabled, true);
 
     // addonOptions.turboOptions
     INIT_UNSET_PROPERTY(config.addonOptions.turboOptions, enabled, !!TURBO_ENABLED);
@@ -644,9 +655,9 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.turboOptions, turboLedColor, static_cast<uint32_t>(TURBO_LED_COLOR.r) << 16 | static_cast<uint32_t>(TURBO_LED_COLOR.g) << 8 | static_cast<uint32_t>(TURBO_LED_COLOR.b));
 
     // addonOptions.reverseOptions
-    INIT_UNSET_PROPERTY(config.addonOptions.reverseOptions, enabled, !!REVERSE_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.reverseOptions, enabled, false);
     INIT_UNSET_PROPERTY(config.addonOptions.reverseOptions, buttonPin, (Pin_t)-1);
-    INIT_UNSET_PROPERTY(config.addonOptions.reverseOptions, ledPin, REVERSE_LED_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.reverseOptions, ledPin, -1);
     INIT_UNSET_PROPERTY(config.addonOptions.reverseOptions, actionUp, REVERSE_UP_DEFAULT);
     INIT_UNSET_PROPERTY(config.addonOptions.reverseOptions, actionDown, REVERSE_DOWN_DEFAULT);
     INIT_UNSET_PROPERTY(config.addonOptions.reverseOptions, actionLeft, REVERSE_LEFT_DEFAULT);
@@ -794,14 +805,192 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
 
     // addonOptions.reactiveLEDOptions
     INIT_UNSET_PROPERTY(config.addonOptions.reactiveLEDOptions, enabled, !!REACTIVE_LED_ENABLED);
-    for (uint16_t led = 0; led < REACTIVE_LED_COUNT; led++) {
+    for (uint16_t led = 0; led < 10; led++) {
         INIT_UNSET_PROPERTY(config.addonOptions.reactiveLEDOptions.leds[led], pin, -1);
         INIT_UNSET_PROPERTY(config.addonOptions.reactiveLEDOptions.leds[led], action, GpioAction::NONE);
         INIT_UNSET_PROPERTY(config.addonOptions.reactiveLEDOptions.leds[led], modeDown, REACTIVE_LED_STATIC_ON);
         INIT_UNSET_PROPERTY(config.addonOptions.reactiveLEDOptions.leds[led], modeUp, REACTIVE_LED_STATIC_OFF);
+        INIT_UNSET_PROPERTY(config.addonOptions.reactiveLEDOptions.leds[led], brightness, 255);
     }
     // reminder that this must be set or else nanopb won't retain anything
-    config.addonOptions.reactiveLEDOptions.leds_count = REACTIVE_LED_COUNT;
+    // 読み込んだ個数は検証まで保持し、Storage 側で3チャンネルに正規化する。
+
+    // addonOptions.heTriggerOptions
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, enabled, !!HETRIGGER_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, selectPin0, HETRIGGER_S0_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, selectPin1, HETRIGGER_S1_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, selectPin2, HETRIGGER_S2_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, selectPin3, HETRIGGER_S3_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin0, HETRIGGER_ADC0);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin1, HETRIGGER_ADC1);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin2, HETRIGGER_ADC2);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxADCPin3, HETRIGGER_ADC3);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, muxChannels, HETRIGGER_MUX_CHANNELS);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, emaSmoothing, HETRIGGER_SMOOTHING_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions, smoothingFactor, HETRIGGER_SMOOTHING_FACTOR);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], action, HETRIGGER_HE0_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], active, HETRIGGER_HE0_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], idle, HETRIGGER_HE0_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], max, HETRIGGER_HE0_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[0], polarity, HETRIGGER_HE0_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], action, HETRIGGER_HE1_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], active, HETRIGGER_HE1_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], idle, HETRIGGER_HE1_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], max, HETRIGGER_HE1_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[1], polarity, HETRIGGER_HE1_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], action, HETRIGGER_HE2_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], active, HETRIGGER_HE2_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], idle, HETRIGGER_HE2_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], max, HETRIGGER_HE2_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[2], polarity, HETRIGGER_HE2_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], action, HETRIGGER_HE3_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], active, HETRIGGER_HE3_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], idle, HETRIGGER_HE3_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], max, HETRIGGER_HE3_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[3], polarity, HETRIGGER_HE3_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], action, HETRIGGER_HE4_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], active, HETRIGGER_HE4_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], idle, HETRIGGER_HE4_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], max, HETRIGGER_HE4_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[4], polarity, HETRIGGER_HE4_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], action, HETRIGGER_HE5_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], active, HETRIGGER_HE5_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], idle, HETRIGGER_HE5_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], max, HETRIGGER_HE5_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[5], polarity, HETRIGGER_HE5_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], action, HETRIGGER_HE6_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], active, HETRIGGER_HE6_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], idle, HETRIGGER_HE6_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], max, HETRIGGER_HE6_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[6], polarity, HETRIGGER_HE6_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], action, HETRIGGER_HE7_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], active, HETRIGGER_HE7_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], idle, HETRIGGER_HE7_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], max, HETRIGGER_HE7_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[7], polarity, HETRIGGER_HE7_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], action, HETRIGGER_HE8_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], active, HETRIGGER_HE8_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], idle, HETRIGGER_HE8_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], max, HETRIGGER_HE8_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[8], polarity, HETRIGGER_HE8_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], action, HETRIGGER_HE9_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], active, HETRIGGER_HE9_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], idle, HETRIGGER_HE9_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], max, HETRIGGER_HE9_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[9], polarity, HETRIGGER_HE9_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], action, HETRIGGER_HE10_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], active, HETRIGGER_HE10_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], idle, HETRIGGER_HE10_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], max, HETRIGGER_HE10_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[10], polarity, HETRIGGER_HE10_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], action, HETRIGGER_HE11_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], active, HETRIGGER_HE11_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], idle, HETRIGGER_HE11_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], max, HETRIGGER_HE11_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[11], polarity, HETRIGGER_HE11_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], action, HETRIGGER_HE12_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], active, HETRIGGER_HE12_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], idle, HETRIGGER_HE12_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], max, HETRIGGER_HE12_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[12], polarity, HETRIGGER_HE12_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], action, HETRIGGER_HE13_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], active, HETRIGGER_HE13_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], idle, HETRIGGER_HE13_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], max, HETRIGGER_HE13_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[13], polarity, HETRIGGER_HE13_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], action, HETRIGGER_HE14_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], active, HETRIGGER_HE14_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], idle, HETRIGGER_HE14_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], max, HETRIGGER_HE14_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[14], polarity, HETRIGGER_HE14_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], action, HETRIGGER_HE15_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], active, HETRIGGER_HE15_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], idle, HETRIGGER_HE15_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], max, HETRIGGER_HE15_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[15], polarity, HETRIGGER_HE15_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], action, HETRIGGER_HE16_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], active, HETRIGGER_HE16_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], idle, HETRIGGER_HE16_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], max, HETRIGGER_HE16_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[16], polarity, HETRIGGER_HE16_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], action, HETRIGGER_HE17_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], active, HETRIGGER_HE17_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], idle, HETRIGGER_HE17_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], max, HETRIGGER_HE17_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[17], polarity, HETRIGGER_HE17_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], action, HETRIGGER_HE18_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], active, HETRIGGER_HE18_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], idle, HETRIGGER_HE18_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], max, HETRIGGER_HE18_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[18], polarity, HETRIGGER_HE18_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], action, HETRIGGER_HE19_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], active, HETRIGGER_HE19_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], idle, HETRIGGER_HE19_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], max, HETRIGGER_HE19_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[19], polarity, HETRIGGER_HE19_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], action, HETRIGGER_HE20_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], active, HETRIGGER_HE20_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], idle, HETRIGGER_HE20_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], max, HETRIGGER_HE20_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[20], polarity, HETRIGGER_HE20_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], action, HETRIGGER_HE21_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], active, HETRIGGER_HE21_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], idle, HETRIGGER_HE21_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], max, HETRIGGER_HE21_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[21], polarity, HETRIGGER_HE21_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], action, HETRIGGER_HE22_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], active, HETRIGGER_HE22_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], idle, HETRIGGER_HE22_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], max, HETRIGGER_HE22_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[22], polarity, HETRIGGER_HE22_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], action, HETRIGGER_HE23_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], active, HETRIGGER_HE23_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], idle, HETRIGGER_HE23_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], max, HETRIGGER_HE23_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[23], polarity, HETRIGGER_HE23_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], action, HETRIGGER_HE24_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], active, HETRIGGER_HE24_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], idle, HETRIGGER_HE24_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], max, HETRIGGER_HE24_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[24], polarity, HETRIGGER_HE24_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], action, HETRIGGER_HE25_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], active, HETRIGGER_HE25_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], idle, HETRIGGER_HE25_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], max, HETRIGGER_HE25_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[25], polarity, HETRIGGER_HE25_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], action, HETRIGGER_HE26_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], active, HETRIGGER_HE26_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], idle, HETRIGGER_HE26_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], max, HETRIGGER_HE26_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[26], polarity, HETRIGGER_HE26_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], action, HETRIGGER_HE27_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], active, HETRIGGER_HE27_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], idle, HETRIGGER_HE27_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], max, HETRIGGER_HE27_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[27], polarity, HETRIGGER_HE27_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], action, HETRIGGER_HE28_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], active, HETRIGGER_HE28_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], idle, HETRIGGER_HE28_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], max, HETRIGGER_HE28_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[28], polarity, HETRIGGER_HE28_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], action, HETRIGGER_HE29_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], active, HETRIGGER_HE29_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], idle, HETRIGGER_HE29_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], max, HETRIGGER_HE29_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[29], polarity, HETRIGGER_HE29_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], action, HETRIGGER_HE30_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], active, HETRIGGER_HE30_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], idle, HETRIGGER_HE30_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], max, HETRIGGER_HE30_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[30], polarity, HETRIGGER_HE30_POLARITY);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], action, HETRIGGER_HE31_ACTION);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], active, HETRIGGER_HE31_ACTIVE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], idle, HETRIGGER_HE31_IDLE);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], max, HETRIGGER_HE31_MAX);
+    INIT_UNSET_PROPERTY(config.addonOptions.heTriggerOptions.triggers[31], polarity, HETRIGGER_HE31_POLARITY);
+
+    // reminder that this must be set or else nanopb won't retain anything
+    config.addonOptions.heTriggerOptions.triggers_count = HETRIGGER_COUNT;
 
     // keyboardMapping
     INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, enabled, KEYBOARD_HOST_ENABLED);
@@ -825,6 +1014,10 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions.mapping, keyButtonR3, KEY_BUTTON_R3);
     INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions.mapping, keyButtonA1, KEY_BUTTON_A1);
     INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions.mapping, keyButtonA2, KEY_BUTTON_A2);
+    INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, mouseLeft, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, mouseMiddle, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, mouseRight, 0);
+    INIT_UNSET_PROPERTY(config.addonOptions.keyboardHostOptions, mouseSensitivity, KEYBOARD_HOST_MOUSE_SENSITIVITY);
 
     // addonOptions.focusModeOptions
     INIT_UNSET_PROPERTY(config.addonOptions.focusModeOptions, enabled, !!FOCUS_MODE_ENABLED);
@@ -833,13 +1026,12 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
     INIT_UNSET_PROPERTY(config.addonOptions.focusModeOptions, buttonLockEnabled, !!FOCUS_MODE_BUTTON_LOCK_ENABLED);
     INIT_UNSET_PROPERTY(config.addonOptions.focusModeOptions, macroLockEnabled, !!FOCUS_MODE_MACRO_LOCK_ENABLED);
 
-
     // addonOptions.gamepadUSBHostOptions
     INIT_UNSET_PROPERTY(config.addonOptions.gamepadUSBHostOptions, enabled, GAMEPAD_USB_HOST_ENABLED)
 
-    // Macro options (always on)
-    INIT_UNSET_PROPERTY(config.addonOptions.macroOptions, enabled, true);
-    INIT_UNSET_PROPERTY(config.addonOptions.macroOptions, macroBoardLedEnabled, INPUT_MACRO_BOARD_LED_ENABLED);
+    // 未指定のMacroは親addonも無効。既存の保存値は保持する。
+    INIT_UNSET_PROPERTY(config.addonOptions.macroOptions, enabled, false);
+    INIT_UNSET_PROPERTY(config.addonOptions.macroOptions, macroBoardLedEnabled, false);
     INIT_UNSET_PROPERTY(config.addonOptions.macroOptions, deprecatedPin, -1);
 
     // Set all macros
@@ -854,8 +1046,16 @@ void ConfigUtils::initUnsetPropertiesWithDefaults(Config& config)
         INIT_UNSET_PROPERTY_STR(config.addonOptions.macroOptions.macroList[i], macroLabel, "");
         INIT_UNSET_PROPERTY(config.addonOptions.macroOptions.macroList[i], deprecatedMacroTriggerPin, -1);
     }
-}
 
+    // addonOptions.tg16Options
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, enabled, !!TG16_PAD_ENABLED);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, oePin, TG16_PAD_OE_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, selectPin, TG16_PAD_SELECT_PIN);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, dataPin0, TG16_PAD_DATA_PIN0);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, dataPin1, TG16_PAD_DATA_PIN1);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, dataPin2, TG16_PAD_DATA_PIN2);
+    INIT_UNSET_PROPERTY(config.addonOptions.tg16Options, dataPin3, TG16_PAD_DATA_PIN3);
+}
 
 // -----------------------------------------------------
 // migrations
@@ -1309,6 +1509,24 @@ void gpioMappingsMigrationCore(Config& config)
     markAddonPinIfUsed(config.addonOptions.snesOptions.clockPin);
     markAddonPinIfUsed(config.addonOptions.snesOptions.latchPin);
     markAddonPinIfUsed(config.addonOptions.snesOptions.dataPin);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.oePin);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.selectPin);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.dataPin0);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.dataPin1);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.dataPin2);
+    markAddonPinIfUsed(config.addonOptions.tg16Options.dataPin3);
+
+    // Set our HE trigger options
+    if (config.addonOptions.heTriggerOptions.enabled) {
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.muxADCPin0);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.muxADCPin1);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.muxADCPin2);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.muxADCPin3);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin0);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin1);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin2);
+        markAddonPinIfUsed(config.addonOptions.heTriggerOptions.selectPin3);
+    }
 
     for (Pin_t pin = 0; pin < (Pin_t)NUM_BANK0_GPIOS; pin++) {
         config.gpioMappings.pins[pin].action = actions[pin];
@@ -1387,7 +1605,7 @@ void migrateTurboPinToGpio(Config& config) {
         }
         turboOptions.deprecatedButtonPin = -1; // set our turbo options to -1 for subsequent calls
     }
-    
+
     // Make sure we set PWM mode if we are using led pin
     if ( turboOptions.turboLedType == PLED_TYPE_NONE && isValidPin(turboOptions.ledPin) ) {
         turboOptions.turboLedType = PLED_TYPE_PWM;
@@ -1570,7 +1788,8 @@ struct ConfigFooter
     }
 };
 
-static const uint32_t FOOTER_MAGIC = 0xd2f1e365;
+// PSX専用設定の識別子。Originalや旧PSX版の保存値は受け入れず初期化する。
+static const uint32_t FOOTER_MAGIC = 0x50535833;
 
 // Verify that the maximum size of the serialized Config object fits into the allocated flash block
 #if defined(Config_size)
@@ -1613,13 +1832,12 @@ static bool loadConfigInner(Config& config)
 
 void ConfigUtils::load(Config& config)
 {
-    // First try to load from Protobuf storage, if that fails fall back to legacy storage.
-    const bool loaded = loadConfigInner(config) | fromLegacyStorage(config);
+    // 旧形式へのフォールバックで別FWの設定を復活させない。
+    const bool loaded = loadConfigInner(config);
 
     if (!loaded)
     {
-        // We could neither deserialize Protobuf config data nor legacy config data.
-        // We are probably dealing with a new device and therefore initialize the config to default values.
+        // 新規機器、旧識別番号、破損設定はすべてPSX版のFactory初期値へ戻す。
         config = Config Config_init_default;
     }
 
@@ -1633,22 +1851,22 @@ void ConfigUtils::load(Config& config)
 
     // Run migrations that need to happen after initUnset...
     // ProtoBuf && Board Config settings are loaded here
-    if (!config.migrations.gpioMappingsMigrated)
+    if (!config.migrations.psxInputsMigrated && !config.migrations.gpioMappingsMigrated)
         gpioMappingsMigrationCore(config);
 
     // Run migration to enable or disable pre-existing profiles
-    if (!config.migrations.profileEnabledFlagsMigrated)
+    if (!config.migrations.psxInputsMigrated && !config.migrations.profileEnabledFlagsMigrated)
         profileEnabledFlagsMigration(config);
 
     // following migrations are simple enough to not need a protobuf boolean to track
     // Migrate turbo into GpioMappings
-    migrateTurboPinToGpio(config);
+    if (!config.migrations.psxInputsMigrated) migrateTurboPinToGpio(config);
     // Migrate PS4/PS5/XBone authentication methods to new organization
     migrateAuthenticationMethods(config);
     // Macro pins to gpio
-    migrateMacroPinsToGpio(config);
+    if (!config.migrations.psxInputsMigrated) migrateMacroPinsToGpio(config);
     // Migrate old JS slider add-on to core
-    migrateJSliderToCore(config);
+    if (!config.migrations.psxInputsMigrated) migrateJSliderToCore(config);
 
     // Update boardVersion, in case we migrated from an older version
     strncpy(config.boardVersion, GP2040VERSION, sizeof(config.boardVersion));
@@ -1656,6 +1874,7 @@ void ConfigUtils::load(Config& config)
     config.has_boardVersion = true;
 
     // Save, to make sure we persist any performed migration steps
+    Storage::enforcePsxConfig(config);
     save(config);
 }
 
@@ -1726,6 +1945,7 @@ bool ConfigUtils::save(Config& config)
         return false;
     }
 
+    Storage::enforcePsxConfig(config);
     // Set all has_XXX flags to true, we want to save all fields.
     // If we didn't do this we would have to remember to set the has_XXX flag manually whenever we change a field from
     // its default value.
@@ -1956,7 +2176,7 @@ static bool fromJsonDouble(JsonObjectConst jsonObject, const char* fieldname, do
     if (jsonObject.containsKey(fieldname))
     {
         JsonVariantConst jsonVariant = jsonObject[fieldname];
-        if (jsonVariant.is<double>())
+        if (jsonVariant.is<double>() && std::isfinite(jsonVariant.as<double>()))
         {
             value = jsonVariant.as<double>();
             flag = true;
@@ -1978,7 +2198,7 @@ static bool fromJsonFloat(JsonObjectConst jsonObject, const char* fieldname, flo
     if (jsonObject.containsKey(fieldname))
     {
         JsonVariantConst jsonVariant = jsonObject[fieldname];
-        if (jsonVariant.is<float>())
+        if (jsonVariant.is<float>() && std::isfinite(jsonVariant.as<float>()))
         {
             value = jsonVariant.as<float>();
             flag = true;
@@ -2240,7 +2460,8 @@ static bool fromJsonBytes(JsonObjectConst jsonObject, const char* fieldname, uin
 #define FROM_JSON_CALLBACK(htype, ltype, fieldname, submessageType) static_assert(false, "not supported");
 
 #define FROM_JSON_FIELD(parenttype, atype, htype, ltype, fieldname, tag, disallow_export) \
-    PREPROCESSOR_JOIN(FROM_JSON_, atype)(htype, ltype, fieldname, parenttype ## _ ## fieldname)
+    if (disallow_export && jsonObject.containsKey(#fieldname)) return false; \
+    if (!disallow_export) { PREPROCESSOR_JOIN(FROM_JSON_, atype)(htype, ltype, fieldname, parenttype ## _ ## fieldname) }
 
 #define GEN_FROM_JSON_FUNCTION_DECL(structtype) static bool fromJSON ## structtype(JsonObjectConst jsonObject, structtype& configStruct);
 
@@ -2271,18 +2492,61 @@ bool ConfigUtils::fromJSON(Config& config, const char* data, size_t dataLen)
     }
 
     // Store config struct on the heap to avoid stack overflow
-    if (!fromJSONConfig(doc.as<JsonObjectConst>(), config))
+    std::unique_ptr<Config> candidate(new Config(config));
+    if (!fromJSONConfig(doc.as<JsonObjectConst>(), *candidate))
     {
         return false;
     }
 
-    initUnsetPropertiesWithDefaults(config);
+    // 旧バックアップの移行履歴は現在の設定から継承しない。
+    if ((doc.containsKey("ledOptions") ||
+         doc["addonOptions"].as<JsonObjectConst>().containsKey("reactiveLEDOptions") ||
+         doc["addonOptions"].as<JsonObjectConst>().containsKey("onBoardLedOptions")) &&
+        !doc["migrations"].as<JsonObjectConst>().containsKey("xiaoLedsMigrated")) {
+        candidate->migrations.xiaoLedsMigrated = false;
+        candidate->migrations.has_xiaoLedsMigrated = false;
+    }
+
+    initUnsetPropertiesWithDefaults(*candidate);
+
+    // 検証失敗時は呼出元の設定にも GPIO mapping にも副作用を残さない。
+    if (!Storage::validatePsxAnalogOptions(candidate->addonOptions.analogOptions)) return false;
+    if (!Storage::validateMacroOptions(candidate->addonOptions.macroOptions) ||
+        !Storage::isNormalButtonMask(candidate->addonOptions.bootselButtonOptions.buttonMap) ||
+        candidate->addonOptions.reverseOptions.actionUp > 2 ||
+        candidate->addonOptions.reverseOptions.actionDown > 2 ||
+        candidate->addonOptions.reverseOptions.actionLeft > 2 ||
+        candidate->addonOptions.reverseOptions.actionRight > 2) return false;
+    // 旧形式は初回移行で置換するが、移行済みバックアップの不正値は拒否する。
+    if (candidate->migrations.xiaoLedsMigrated &&
+        (!Storage::validateReactiveLedOptions(candidate->addonOptions.reactiveLEDOptions) ||
+         candidate->addonOptions.onBoardLedOptions.mode < ON_BOARD_LED_MODE_OFF ||
+         candidate->addonOptions.onBoardLedOptions.mode > ON_BOARD_LED_MODE_PS_AUTH)) return false;
+
+    // PSX形式のバックアップでは予約actionや物理ボタンを補正で隠さず拒否する。
+    if (candidate->migrations.psxInputsMigrated) {
+        const auto validMappings = [](const GpioMappings& mappings) -> bool {
+            if (mappings.pins_count > sizeof(mappings.pins) / sizeof(mappings.pins[0])) return false;
+            for (unsigned slot = 0; slot < mappings.pins_count; ++slot) {
+                const auto& pin = mappings.pins[slot];
+                if (!Storage::isPsxMappingAction(pin.action) || pin.customDpadMask > 15 ||
+                    ((slot < 8 || slot > 23) && pin.action != NONE)) return false;
+            }
+            return true;
+        };
+        if (!validMappings(candidate->gpioMappings)) return false;
+        if (candidate->profileOptions.gpioMappingsSets_count >
+            sizeof(candidate->profileOptions.gpioMappingsSets) / sizeof(candidate->profileOptions.gpioMappingsSets[0])) return false;
+        for (unsigned index = 0; index < candidate->profileOptions.gpioMappingsSets_count; ++index)
+            if (!validMappings(candidate->profileOptions.gpioMappingsSets[index])) return false;
+    }
 
     // we need to run migrations here too, in case the json document changed pins or things derived from pins
-    gpioMappingsMigrationCore(config);
-    migrateTurboPinToGpio(config);
-    migrateAuthenticationMethods(config);
-    migrateMacroPinsToGpio(config);
+    if (!candidate->migrations.psxInputsMigrated)
+        gpioMappingsMigrationCore(*candidate);
+    migrateAuthenticationMethods(*candidate);
+    Storage::enforcePsxConfig(*candidate);
+    config = *candidate;
 
     return true;
 }

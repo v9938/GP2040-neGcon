@@ -47,6 +47,20 @@ typedef struct __attribute((packed, aligned(1)))
     uint8_t _reserved[6];
 } XInputReport;
 
+typedef enum {
+    XINPUT_SUBTYPE_NONE = 0x00,
+    XINPUT_SUBTYPE_GAMEPAD = 0x01,
+    XINPUT_SUBTYPE_WHEEL = 0x02,
+    XINPUT_SUBTYPE_ARCADE_STICK = 0x03,
+    XINPUT_SUBTYPE_HOTAS = 0x04,
+    XINPUT_SUBTYPE_DANCE_PAD = 0x05,
+    XINPUT_SUBTYPE_GUITAR = 0x06,
+    XINPUT_SUBTYPE_GUITAR_ALT = 0x07,
+    XINPUT_SUBTYPE_DRUMS = 0x08,
+    XINPUT_SUBTYPE_GUITAR_BASS = 0x0B,
+    XINPUT_SUBTYPE_ARCADE_PAD = 0x13,
+} XInputSubtype;
+
 static const uint8_t xinput_string_language[]    = { 0x09, 0x04 };
 static const uint8_t xinput_string_serial[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 static const uint8_t xinput_string_manfacturer[] = "\xa9Microsoft Corporation";
@@ -64,6 +78,9 @@ static const uint8_t *xinput_string_descriptors[] __attribute__((unused)) =
 };
 
 static const uint8_t * xinput_get_string_descriptor(int index) {
+    // Windowsは未定義の0xEEも問い合わせる。配列範囲外ならUSB側へSTALLを返す。
+    if (index < 0 || index >= static_cast<int>(sizeof(xinput_string_descriptors) / sizeof(xinput_string_descriptors[0])))
+        return nullptr;
     if ( index == 3 ) {
         // Generate a serial number of hex bytes from the pico's unique ID
         pico_unique_board_id_t unique_id;

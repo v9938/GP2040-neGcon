@@ -1,8 +1,30 @@
 export default {
+	'mode-table-title': 'Saída original / atribuição PSX (17 modos)',
+	'mode-table-description': 'Conversão direta de botões e perfil em edição. Macros, SOCD, atalhos, atribuição analógica e prioridade USB host são processos separados. Botões não suportados não têm saída USB. Original significa o layout de saída, não a fiação GPIO ou atribuições antigas.',
+	'mode-table-select': 'Modo para comparar',
+	'mode-table-local-only': 'A seleção muda apenas esta tabela; não salva nem altera o modo do controle.',
+	'mode-table-current': 'Modo salvo: {{mode}}',
+	'mode-table-output': 'Botão de saída original',
+	'mode-table-action': 'Ação GP2040',
+	'mode-table-page-label': 'Nome atual na página',
+	'mode-table-sources': 'Entradas PSX atribuídas (perfil em edição)',
+	'mode-table-unsupported': 'Sem saída USB',
+	'mode-table-unassigned': 'Não atribuído',
+	'mode-table-loading': 'Carregando configurações salvas...',
+	'mode-table-error': 'Não foi possível ler as configurações. Recarregue para tentar novamente; nenhum modo padrão é presumido.',
+	'mode-table-reload': 'Recarregar configurações salvas',
+	'mode-table-label-warning': 'Os nomes da página usam {{label}} e podem diferir da saída. Não acompanham automaticamente esta seleção.',
+	'mode-table-variant': 'Layout de gamepad padrão (PS3: Sixaxis / gamepad alternativo). Tipo salvo: {{deviceType}}. Volante, guitarra, bateria e outras variantes usam relatórios diferentes. Touchpad/Share usa a troca salva; posições esquerda/direita só se aplicam ao relatório de gamepad.',
+	'mode-table-key-unavailable': 'Tecla configurada indisponível',
+	'mode-table-axes': 'Eixos do relatório analógico',
+	'psx-profile-title': '{{profileLabel}} - Configuração dos botões PSX',
+	'profile-pin-mapping-title': '{{profileLabel}} - Configuração dos botões PSX',
 	'sub-header-text':
-		'Utilize o formulário abaixo para reconfigurar o mapeamento de botões para pinos.',
+		'Atribua funções de saída aos botões de entrada PSX. Utilize o visualizador de botões PSX para identificar as entradas.',
 	'alert-text':
-		'Associar botões a pinos que não estão conectados ou disponíveis pode deixar o dispositivo em um estado não funcional. Para limpar a configuração inválida, vá para a página <2>Redefinir Configurações</2>.',
+		'Atribuir funções indisponíveis pode deixar o controle em um estado não funcional. Para limpar a configuração inválida, vá para a página <2>Redefinir Configurações</2>.',
+	'pin-viewer': 'Visualizador de botões PSX',
+	'pin-pressed': 'Entrada PSX pressionada: {{pressedPin}}',
 	'profile-pins-warning':
 		'Tente evitar alterar os botões/direções usados para seus atalhos de perfil de troca, caso contrário, ficará difícil entender qual perfil você está selecionando!',
 };

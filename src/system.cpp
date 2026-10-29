@@ -1,6 +1,7 @@
 #include "system.h"
 
 #include "usbhostmanager.h"
+#include "tusb.h"
 
 #include <hardware/flash.h>
 #include <hardware/sync.h>
@@ -59,6 +60,12 @@ uint32_t System::getUsedHeap() {
 }
 
 void System::reboot(BootMode bootMode) {
+    // VID/PIDやインターフェース構成が変わる再起動では、PCに切断を確実に通知する。
+    // PIO USB-HOSTの停止だけでは、PC側のnative USB pull-upは解除されない。
+    if (tud_inited()) {
+        tud_disconnect();
+        sleep_ms(100);
+    }
     // Halt all running USB instances
     USBHostManager::getInstance().shutdown();
 
